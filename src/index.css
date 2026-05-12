@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Sportsmagasin: krempapir, sort blekk, gul aksent */
+    --cream:        43 50% 95%;   /* #FAF6EE */
+    --cream-dark:   42 38% 92%;   /* litt mørkere kort-flate */
+    --ink:           0  0%  9%;   /* nesten sort */
+    --ink-muted:     0  0% 40%;
+    --accent:       48 100% 55%;  /* gul */
+    --accent-ink:    0  0%  9%;
+    --line:         42 20% 85%;
+    --danger:        0 75% 50%;
+    --success:     142 60% 38%;
+    --warn:         32 95% 50%;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Hindre iOS zoom på fokus av input */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
