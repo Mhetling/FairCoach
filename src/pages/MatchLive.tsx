@@ -211,14 +211,10 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const sw = W / 50;
   const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.45, strokeWidth: sw };
   const dot  = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
+  const keyFill = { fill: "white", fillOpacity: 0.06 };
 
-  // Three-point arc for one end.
-  // dir=1: basket near y=0 (top), arc opens downward.
-  // dir=-1: basket near y=L (bottom), arc opens upward.
   function threePointPath(basketY: number, dir: 1 | -1) {
-    // Straight sideline segments run from end line to where the arc meets x=0.9 / x=W-0.9
     const cornerX = 0.9;
-    // y-coordinate where the straight part meets the arc (chord at x = cornerX)
     const dx = cx - cornerX;
     const arcY = basketY + dir * Math.sqrt(Math.max(0, TPR * TPR - dx * dx));
     const sweep = dir === 1 ? 1 : 0;
@@ -230,17 +226,14 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
     ].join(" ");
   }
 
-  // Key/paint rect + free-throw semicircle for one end
   function keyPath(endY: number, dir: 1 | -1) {
     const kx = (W - KW) / 2;
-    const ftY = endY + dir * KD; // free-throw line y
+    const ftY = endY + dir * KD;
     const ftSweep = dir === 1 ? 1 : 0;
     return { kx, ftY, ftSweep };
   }
 
-  // Top end (basket near y=0, dir=1 means arc curves toward centre)
   const top = keyPath(0, 1);
-  // Bottom end (basket near y=L, dir=-1)
   const bot = keyPath(L, -1);
 
   return (
@@ -251,17 +244,34 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
       {/* Centre line and circle */}
       <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
       <circle cx={cx} cy={L / 2} r={CCR} {...line} />
+      <circle cx={cx} cy={L / 2} r={sw * 0.8} {...dot} />
 
       {/* Top end */}
+      <rect x={top.kx} y={0} width={KW} height={KD} {...keyFill} />
       <rect x={top.kx} y={0} width={KW} height={KD} {...line} />
       <path d={`M ${top.kx},${top.ftY} A ${FTR},${FTR} 0 0,${top.ftSweep} ${top.kx + KW},${top.ftY}`} {...line} />
-      <circle cx={cx} cy={BD} r={sw * 1.4} {...dot} />
+      {/* Restricted area under top basket */}
+      <path d={`M ${cx - 1.25},${BD} A 1.25,1.25 0 0,1 ${cx + 1.25},${BD}`}
+        {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
+      {/* Basket */}
+      <circle cx={cx} cy={BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
+      <circle cx={cx} cy={BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
+      {/* Backboard */}
+      <line x1={cx - 1.2} y1={BD + 0.2} x2={cx + 1.2} y2={BD + 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
       <path d={threePointPath(0, 1)} {...line} />
 
       {/* Bottom end */}
+      <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...keyFill} />
       <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...line} />
       <path d={`M ${bot.kx},${bot.ftY} A ${FTR},${FTR} 0 0,${bot.ftSweep} ${bot.kx + KW},${bot.ftY}`} {...line} />
-      <circle cx={cx} cy={L - BD} r={sw * 1.4} {...dot} />
+      {/* Restricted area under bottom basket */}
+      <path d={`M ${cx - 1.25},${L - BD} A 1.25,1.25 0 0,0 ${cx + 1.25},${L - BD}`}
+        {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
+      {/* Basket */}
+      <circle cx={cx} cy={L - BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
+      <circle cx={cx} cy={L - BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
+      {/* Backboard */}
+      <line x1={cx - 1.2} y1={L - BD - 0.2} x2={cx + 1.2} y2={L - BD - 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
       <path d={threePointPath(L, -1)} {...line} />
     </svg>
   );
@@ -295,6 +305,7 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap }: {
   return (
     <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
+      <span className="text-[10px] font-medium text-white/90 drop-shadow">{fmtTime(playSeconds)}</span>
       <div className={cn(
         "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-display text-sm font-bold transition-all duration-150 shadow-md",
         isPendingSwap
@@ -307,7 +318,6 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap }: {
         {mp.player.name.split(" ")[0]}
       </span>
       <div className={cn("h-2 w-2 rounded-full", FP_DOT[fpColor])} />
-      <span className="text-xs font-medium text-white/90">{fmtTime(playSeconds)}</span>
     </div>
   );
 }
