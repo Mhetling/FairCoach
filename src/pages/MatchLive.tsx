@@ -329,9 +329,9 @@ function BenchItem({ mp, playSeconds, fpColor }: {
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners}
+    <div ref={setNodeRef} {...attributes}
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-ink/20 bg-cream-dark p-3 cursor-grab active:cursor-grabbing select-none",
+        "flex items-center gap-3 rounded-lg border border-ink/20 bg-cream-dark p-3 select-none",
         isDragging && "opacity-30",
       )}>
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink font-display text-base font-bold text-cream">
@@ -342,7 +342,9 @@ function BenchItem({ mp, playSeconds, fpColor }: {
         <div className="text-sm text-ink-muted">{fmtTime(playSeconds)}</div>
       </div>
       <div className={cn("h-3 w-3 shrink-0 rounded-full", FP_DOT[fpColor])} />
-      <GripVertical className="h-5 w-5 shrink-0 text-ink-muted" />
+      <div {...listeners} className="touch-none cursor-grab active:cursor-grabbing p-2 -m-2">
+        <GripVertical className="h-5 w-5 shrink-0 text-ink-muted" />
+      </div>
     </div>
   );
 }
@@ -597,7 +599,7 @@ export function MatchLive() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 1000, tolerance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 0, tolerance: 5 } }),
   );
 
   if (isLoading || !data) {
