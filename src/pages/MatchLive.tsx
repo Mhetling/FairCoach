@@ -296,14 +296,14 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap }: {
     <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
       <div className={cn(
-        "flex h-[66px] w-[66px] items-center justify-center rounded-full border-2 font-display text-lg font-bold transition-all duration-150 shadow-md",
+        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-display text-sm font-bold transition-all duration-150 shadow-md",
         isPendingSwap
           ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
           : "border-white bg-ink text-cream",
       )}>
         {mp.player.jersey_number ?? mp.player.name.charAt(0).toUpperCase()}
       </div>
-      <span className="max-w-[64px] truncate text-center text-xs font-semibold leading-tight text-white drop-shadow">
+      <span className="max-w-[46px] truncate text-center text-[10px] font-semibold leading-tight text-white drop-shadow">
         {mp.player.name.split(" ")[0]}
       </span>
       <div className={cn("h-2 w-2 rounded-full", FP_DOT[fpColor])} />
@@ -321,18 +321,18 @@ function BenchItem({ mp, playSeconds, fpColor }: {
   return (
     <div ref={setNodeRef} {...attributes} {...listeners}
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-ink/20 bg-cream-dark p-3 touch-none cursor-grab active:cursor-grabbing",
+        "flex items-center gap-3 rounded-lg border border-ink/20 bg-cream-dark p-3 cursor-grab active:cursor-grabbing select-none",
         isDragging && "opacity-30",
       )}>
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-ink font-display text-xl font-bold text-cream">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink font-display text-base font-bold text-cream">
         {mp.player.jersey_number ?? mp.player.name.charAt(0).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-xl font-medium text-ink">{mp.player.name}</div>
-        <div className="text-base text-ink-muted">{fmtTime(playSeconds)}</div>
+        <div className="truncate text-base font-medium text-ink">{mp.player.name}</div>
+        <div className="text-sm text-ink-muted">{fmtTime(playSeconds)}</div>
       </div>
-      <div className={cn("h-3.5 w-3.5 shrink-0 rounded-full", FP_DOT[fpColor])} />
-      <GripVertical className="h-6 w-6 shrink-0 text-ink-muted" />
+      <div className={cn("h-3 w-3 shrink-0 rounded-full", FP_DOT[fpColor])} />
+      <GripVertical className="h-5 w-5 shrink-0 text-ink-muted" />
     </div>
   );
 }
@@ -587,7 +587,7 @@ export function MatchLive() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 1000, tolerance: 10 } }),
   );
 
   if (isLoading || !data) {
@@ -887,10 +887,10 @@ export function MatchLive() {
         <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
           {activePlayer && (
             <div className="flex flex-col items-center gap-px pointer-events-none scale-110">
-              <div className="flex h-[66px] w-[66px] items-center justify-center rounded-full border-2 border-white bg-ink font-display text-lg font-bold text-cream shadow-2xl">
+              <div className="flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 border-white bg-ink font-display text-sm font-bold text-cream shadow-2xl">
                 {activePlayer.player.jersey_number ?? activePlayer.player.name.charAt(0).toUpperCase()}
               </div>
-              <span className="max-w-[64px] truncate text-center text-xs font-semibold text-white drop-shadow-lg">
+              <span className="max-w-[46px] truncate text-center text-[10px] font-semibold text-white drop-shadow-lg">
                 {activePlayer.player.name.split(" ")[0]}
               </span>
             </div>
