@@ -1,4 +1,4 @@
-import { ChevronLeft, LogOut } from "lucide-react";
+import { ChevronLeft, Home, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/AuthProvider";
@@ -35,7 +35,9 @@ export function Header({ title, showBack, rightSlot }: HeaderProps) {
               <LogOut className="h-5 w-5" />
             </Button>
           ) : (
-            <div className="h-11 w-11" />
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Mine lag">
+              <Home className="h-5 w-5" />
+            </Button>
           )
         )}
       </div>

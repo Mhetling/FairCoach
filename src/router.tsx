@@ -1,11 +1,12 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { Login } from "@/pages/Login";
-import { SportPicker } from "@/pages/SportPicker";
-import { TeamList } from "@/pages/TeamList";
+import { MyTeams } from "@/pages/MyTeams";
 import { TeamDetail } from "@/pages/TeamDetail";
 import { MatchSetup } from "@/pages/MatchSetup";
 import { MatchLive } from "@/pages/MatchLive";
+import { MatchSummary } from "@/pages/MatchSummary";
+import { MatchHistory } from "@/pages/MatchHistory";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
@@ -13,15 +14,7 @@ export const router = createBrowserRouter([
     path: "/",
     element: (
       <ProtectedRoute>
-        <SportPicker />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/sport/:sportId/teams",
-    element: (
-      <ProtectedRoute>
-        <TeamList />
+        <MyTeams />
       </ProtectedRoute>
     ),
   },
@@ -46,6 +39,22 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <MatchLive />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/teams/:teamId/matches",
+    element: (
+      <ProtectedRoute>
+        <MatchHistory />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/matches/:matchId/summary",
+    element: (
+      <ProtectedRoute>
+        <MatchSummary />
       </ProtectedRoute>
     ),
   },

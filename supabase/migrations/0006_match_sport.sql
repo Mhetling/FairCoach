@@ -1,0 +1,1 @@
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS sport_id text NOT NULL DEFAULT 'soccer';

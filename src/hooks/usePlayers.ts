@@ -39,6 +39,32 @@ export function useCreatePlayer() {
   });
 }
 
+export function useUpdatePlayer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      team_id: string;
+      name: string;
+      jersey_number: number | null;
+      position: string | null;
+    }) => {
+      const { id, team_id, ...fields } = input;
+      const { data, error } = await supabase
+        .from("players")
+        .update(fields)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Player;
+    },
+    onSuccess: (player) => {
+      qc.invalidateQueries({ queryKey: ["players", player.team_id] });
+    },
+  });
+}
+
 export function useDeletePlayer() {
   const qc = useQueryClient();
   return useMutation({

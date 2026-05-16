@@ -98,6 +98,24 @@ create index if not exists match_events_match_id_idx on public.match_events(matc
 -- Realtime: enable streaming on match tables so the coach can keep a
 -- match in sync between phone and tablet.
 -- ---------------------------------------------------------------
-alter publication supabase_realtime add table public.matches;
-alter publication supabase_realtime add table public.match_players;
-alter publication supabase_realtime add table public.match_events;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'matches'
+  ) then
+    alter publication supabase_realtime add table public.matches;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'match_players'
+  ) then
+    alter publication supabase_realtime add table public.match_players;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'match_events'
+  ) then
+    alter publication supabase_realtime add table public.match_events;
+  end if;
+end $$;

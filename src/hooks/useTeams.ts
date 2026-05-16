@@ -3,6 +3,22 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import type { SportId, Team } from "@/types/database";
 
+export function useAllTeams() {
+  const { user } = useAuth();
+  return useQuery({
+    enabled: !!user,
+    queryKey: ["teams", user?.id],
+    queryFn: async (): Promise<Team[]> => {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useTeams(sportId?: SportId) {
   const { user } = useAuth();
   return useQuery({
@@ -49,8 +65,30 @@ export function useCreateTeam() {
       if (error) throw error;
       return data as Team;
     },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["teams"] });
+    },
+  });
+}
+
+export function useUpdateTeam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      name?: string;
+      default_players_on_field?: number | null;
+      default_period_length_seconds?: number | null;
+      default_period_count?: number | null;
+    }) => {
+      const { id, ...fields } = input;
+      const { data, error } = await supabase.from("teams").update(fields).eq("id", id).select().single();
+      if (error) throw error;
+      return data as import("@/types/database").Team;
+    },
     onSuccess: (team) => {
-      qc.invalidateQueries({ queryKey: ["teams", user?.id, team.sport_id] });
+      qc.invalidateQueries({ queryKey: ["teams"] });
+      qc.invalidateQueries({ queryKey: ["team", team.id] });
     },
   });
 }

@@ -18,6 +18,9 @@ export type Team = {
   user_id: string;
   sport_id: SportId;
   name: string;
+  default_players_on_field: number | null;
+  default_period_length_seconds: number | null;
+  default_period_count: number | null;
   created_at: string;
 };
 
@@ -42,6 +45,12 @@ export type Match = {
   status: MatchStatus;
   current_period: number;
   elapsed_seconds: number;
+  score_home: number | null;
+  score_away: number | null;
+  notes: string | null;
+  formation: string | null;
+  track_goals: boolean;
+  sport_id: SportId;
   created_at: string;
 };
 
@@ -93,6 +102,9 @@ export type Database = {
           user_id: string;
           sport_id: SportId;
           name: string;
+          default_players_on_field?: number | null;
+          default_period_length_seconds?: number | null;
+          default_period_count?: number | null;
           created_at?: string;
         };
         Update: Partial<Omit<Team, "id">>;
@@ -125,6 +137,12 @@ export type Database = {
           status?: MatchStatus;
           current_period?: number;
           elapsed_seconds?: number;
+          score_home?: number | null;
+          score_away?: number | null;
+          notes?: string | null;
+          formation?: string | null;
+          track_goals?: boolean;
+          sport_id?: SportId;
           created_at?: string;
         };
         Update: Partial<Omit<Match, "id">>;
