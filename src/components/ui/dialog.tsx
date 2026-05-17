@@ -34,7 +34,7 @@ export const DialogContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 w-[min(96vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-ink/10 bg-cream p-5 shadow-card",
+        "fixed left-1/2 top-[5vh] z-50 w-[min(96vw,28rem)] -translate-x-1/2 max-h-[90vh] overflow-y-auto rounded-card border border-ink/10 bg-cream p-5 shadow-card",
         "data-[state=open]:animate-in data-[state=open]:zoom-in-95",
         "data-[state=closed]:animate-out data-[state=closed]:zoom-out-95",
         className,

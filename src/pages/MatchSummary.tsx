@@ -37,7 +37,7 @@ const FP_HEX: Record<FPColor, string> = {
   blue: "#3b82f6", green: "#22c55e", yellow: "#facc15", red: "#ef4444",
 };
 const FP_LABEL: Record<FPColor, string> = {
-  blue: "For mye", green: "Balansert", yellow: "Litt under", red: "Mye under",
+  blue: "Mye", green: "Balansert", yellow: "Litt under", red: "Mye under",
 };
 
 function calcFP(play: number, elapsed: number, onField: number, total: number): FPColor {

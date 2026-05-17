@@ -33,6 +33,7 @@ import {
   useUpdateMatch,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
+import { useTeam } from "@/hooks/useTeams";
 import {
   PITCH_SPECS, HANDBALL_COURT_SPEC, HOCKEY_RINK_SPEC, BASKETBALL_COURT_SPEC,
   type PitchSpec, type HandballCourtSpec, type HockeyRinkSpec, type BasketballCourtSpec,
@@ -103,10 +104,6 @@ function PitchMarkings({ spec }: { spec: PitchSpec }) {
         <circle cx={cx} cy={penaltySpotDistance} r={dotR} {...dot} />
         <circle cx={cx} cy={L - penaltySpotDistance} r={dotR} {...dot} />
       </>)}
-      <line x1={(W - goalWidth) / 2} y1={0} x2={(W + goalWidth) / 2} y2={0}
-        stroke="white" strokeOpacity={0.85} strokeWidth={sw * 3} />
-      <line x1={(W - goalWidth) / 2} y1={L} x2={(W + goalWidth) / 2} y2={L}
-        stroke="white" strokeOpacity={0.85} strokeWidth={sw * 3} />
       <path d={`M 0,${cornerR * 2} A ${cornerR * 2},${cornerR * 2} 0 0,1 ${cornerR * 2},0`} {...line} />
       <path d={`M ${W},${cornerR * 2} A ${cornerR * 2},${cornerR * 2} 0 0,0 ${W - cornerR * 2},0`} {...line} />
       <path d={`M 0,${L - cornerR * 2} A ${cornerR * 2},${cornerR * 2} 0 0,0 ${cornerR * 2},${L}`} {...line} />
@@ -338,10 +335,12 @@ function BenchItem({ mp, playSeconds, fpColor }: {
         {mp.player.jersey_number ?? mp.player.name.charAt(0).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-base font-medium text-ink">{mp.player.name}</div>
+        <div className="flex items-center gap-1.5">
+          <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", FP_DOT[fpColor])} />
+          <div className="truncate text-base font-medium text-ink">{mp.player.name}</div>
+        </div>
         <div className="text-sm text-ink-muted">{fmtTime(playSeconds)}</div>
       </div>
-      <div className={cn("h-3 w-3 shrink-0 rounded-full", FP_DOT[fpColor])} />
       <div {...listeners} className="touch-none cursor-grab active:cursor-grabbing p-2 -m-2">
         <GripVertical className="h-5 w-5 shrink-0 text-ink-muted" />
       </div>
@@ -351,10 +350,11 @@ function BenchItem({ mp, playSeconds, fpColor }: {
 
 // ─── Goal dialog ──────────────────────────────────────────────────────────────
 
-function GoalDialog({ open, team, opponent, players, onConfirm, onCancel }: {
+function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCancel }: {
   open: boolean;
   team: "home" | "away";
   opponent: string | null;
+  teamName: string | null;
   players: RichMatchPlayer[];
   onConfirm: (scorerId: string | null, assistId: string | null) => void;
   onCancel: () => void;
@@ -367,7 +367,7 @@ function GoalDialog({ open, team, opponent, players, onConfirm, onCancel }: {
   }, [open]);
 
   const isHome = team === "home";
-  const teamLabel = isHome ? "Vi" : (opponent ?? "Motstander");
+  const teamLabel = isHome ? (teamName ?? "Vi") : (opponent ?? "Motstander");
 
   const onField = players.filter((p) => p.on_field)
     .sort((a, b) => (a.player.jersey_number ?? 999) - (b.player.jersey_number ?? 999));
@@ -529,6 +529,7 @@ export function MatchLive() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const { data, isLoading } = useMatchDetail(matchId);
+  const { data: team } = useTeam(data?.match.team_id);
   const updateMatch = useUpdateMatch(matchId);
   const substitute = useSubstitute(matchId);
   const endPeriod = useEndPeriod(matchId);
@@ -803,7 +804,7 @@ export function MatchLive() {
         {/* Score */}
         {match.track_goals && <div className="mb-3 flex items-center rounded-xl border border-ink/10 bg-cream-dark px-4 py-3">
           <div className="flex flex-1 flex-col items-center gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-widest text-ink-muted">Vi</span>
+            <span className="max-w-[100px] truncate text-center text-xs font-semibold uppercase tracking-widest text-ink-muted">{team?.name ?? "Vi"}</span>
             <span className="font-display text-5xl font-bold tabular-nums text-ink leading-none">{scoreHome}</span>
             {match.status !== "finished" && (
               <div className="flex gap-2">
@@ -873,7 +874,7 @@ export function MatchLive() {
 
         {/* Fair play legend */}
         <div className="mt-2 mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />For mye</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />Mye</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-green-500" />Balansert</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />Litt under</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500" />Mye under</span>
@@ -915,6 +916,7 @@ export function MatchLive() {
             open={goalDialog !== null}
             team={goalDialog?.team ?? "home"}
             opponent={match.opponent}
+            teamName={team?.name ?? null}
             players={players}
             onConfirm={confirmGoal}
             onCancel={() => setGoalDialog(null)}
