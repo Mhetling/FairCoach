@@ -76,7 +76,7 @@ function calcFP(play: number, elapsed: number, onField: number, total: number): 
 // ─── SVG pitch markings ───────────────────────────────────────────────────────
 
 function PitchMarkings({ spec }: { spec: PitchSpec }) {
-  const { width: W, length: L, goalWidth, penaltyAreaWidth, penaltyAreaDepth,
+  const { width: W, length: L, penaltyAreaWidth, penaltyAreaDepth,
     goalAreaWidth, goalAreaDepth, penaltySpotDistance, centerCircleRadius } = spec;
   const cx = W / 2, cy = L / 2;
   const sw = W / 50;
