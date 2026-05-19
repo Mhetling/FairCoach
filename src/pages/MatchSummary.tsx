@@ -173,7 +173,11 @@ function SubTimeline({ events }: { events: RichMatchEvent[] }) {
   );
 }
 
-// ─── Share card (PDF-style one-pager) ─────────────────────────────────────────
+// ─── Share card ───────────────────────────────────────────────────────────────
+
+const FP_CIRCLE_TEXT: Record<FPColor, string> = {
+  blue: "#ffffff", green: "#ffffff", yellow: "#171717", red: "#ffffff",
+};
 
 const ShareCard = forwardRef<HTMLDivElement, {
   match: Match;
@@ -184,45 +188,34 @@ const ShareCard = forwardRef<HTMLDivElement, {
   notes: string;
 }>(({ match, players, events, scoreHome, scoreAway, notes }, ref) => {
   const sorted = [...players].sort((a, b) => b.total_play_seconds - a.total_play_seconds);
-  const maxSec = Math.max(sorted[0]?.total_play_seconds ?? 1, 1);
   const elapsed = match.elapsed_seconds;
   const nField = match.players_on_field;
   const total = players.length;
-  const hasScore = scoreHome != null && scoreAway != null;
+  const hasScore = match.track_goals && scoreHome != null && scoreAway != null;
   const minPer = match.period_length_seconds / 60;
+  const goals = events
+    .filter((e) => e.event_type === "goal")
+    .sort((a, b) => a.at_seconds - b.at_seconds);
 
-  const goals = events.filter((e) => e.event_type === "goal").sort((a, b) => a.at_seconds - b.at_seconds);
-  const byTime: Record<number, { on: RichMatchEvent | null; off: RichMatchEvent | null }> = {};
-  for (const ev of events) {
-    if (ev.event_type !== "on" && ev.event_type !== "off") continue;
-    const bucket = (byTime[ev.at_seconds] ??= { on: null, off: null });
-    if (ev.event_type === "on") bucket.on = ev;
-    else bucket.off = ev;
-  }
-  const subs = Object.entries(byTime)
-    .map(([t, b]) => ({ at: Number(t), ...b }))
-    .filter((s) => s.on && s.off)
-    .sort((a, b) => a.at - b.at);
-
-  // Colors — all solid, no CSS variables
+  // All solid colors — no CSS variables (html2canvas limitation)
   const C = {
-    bg:       "#F8F5EF",
-    header:   "#171717",
-    text:     "#171717",
-    muted:    "#6b7280",
-    dim:      "#e5dfd4",
-    barBg:    "#e5dfd4",
-    barFill:  "#9ca3af",
-    cream:    "#FAF6EE",
-    label:    "#9ca3af",
+    bg:     "#F8F5EF",
+    header: "#171717",
+    cream:  "#FAF6EE",
+    text:   "#171717",
+    muted:  "#6b7280",
+    dim:    "#e5dfd4",
+    label:  "#9ca3af",
   };
 
-  const sec = (label: string) => (
-    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" as const, color: C.label, marginBottom: 10 }}>
-      {label}
+  const divider = <div style={{ height: 1, background: C.dim, margin: "18px 0" }} />;
+
+  const sectionLabel = (text: string) => (
+    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2,
+      textTransform: "uppercase" as const, color: C.label, marginBottom: 12 }}>
+      {text}
     </div>
   );
-  const divider = <div style={{ height: 1, background: C.dim, margin: "16px 0" }} />;
 
   return (
     <div ref={ref} style={{
@@ -231,42 +224,94 @@ const ShareCard = forwardRef<HTMLDivElement, {
       background: C.bg,
       fontFamily: "Inter, system-ui, sans-serif",
       color: C.text,
-      boxSizing: "border-box",
-      overflow: "hidden",
+      boxSizing: "border-box" as const,
     }}>
-      {/* Dark header band */}
-      <div style={{ background: C.header, padding: "24px 24px 20px", color: C.cream }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" as const, color: "rgba(250,246,238,0.45)", marginBottom: 8 }}>
+
+      {/* ── Header ── */}
+      <div style={{ background: C.header, padding: "22px 24px 20px" }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3,
+          textTransform: "uppercase" as const, color: "rgba(250,246,238,0.35)", marginBottom: 14 }}>
           FairCoach
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, color: C.cream }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.cream, lineHeight: 1.1,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
               {match.opponent ? `vs ${match.opponent}` : "Kamp"}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(250,246,238,0.5)", marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: "rgba(250,246,238,0.4)", marginTop: 6 }}>
               {fmtDate(match.created_at)} · {match.players_on_field}er · {match.period_count}×{minPer} min
               {match.formation ? ` · ${match.formation}` : ""}
             </div>
           </div>
           {hasScore && (
-            <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, padding: "8px 16px", textAlign: "center", flexShrink: 0, marginLeft: 16 }}>
-              <div style={{ fontSize: 9, color: "rgba(250,246,238,0.45)", marginBottom: 3 }}>RESULTAT</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: C.cream, lineHeight: 1, letterSpacing: -1 }}>
-                {scoreHome} – {scoreAway}
+            <div style={{ flexShrink: 0, textAlign: "center" as const,
+              background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 20px" }}>
+              <div style={{ fontSize: 42, fontWeight: 800, color: C.cream,
+                lineHeight: 1, letterSpacing: -2, fontVariantNumeric: "tabular-nums" as const }}>
+                {scoreHome}–{scoreAway}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ padding: "20px 24px 24px" }}>
+      {/* ── Body ── */}
+      <div style={{ padding: "22px 24px 26px" }}>
+
+        {/* Spilletid — chip grid */}
+        {sectionLabel("Spilletid")}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+          {sorted.map((mp) => {
+            const fp = calcFP(mp.total_play_seconds, elapsed, nField, total);
+            const circleLabel = mp.player.jersey_number != null
+              ? `#${mp.player.jersey_number}`
+              : mp.player.name.charAt(0).toUpperCase();
+            const firstName = mp.player.name.split(" ")[0];
+            return (
+              <div key={mp.player_id} style={{ display: "flex", flexDirection: "column" as const,
+                alignItems: "center", gap: 5 }}>
+                <div style={{
+                  width: 54, height: 54, borderRadius: "50%",
+                  background: FP_HEX[fp],
+                  color: FP_CIRCLE_TEXT[fp],
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: mp.player.jersey_number != null ? 14 : 18,
+                  fontWeight: 800,
+                  flexShrink: 0,
+                }}>
+                  {circleLabel}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.text,
+                  maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis",
+                  whiteSpace: "nowrap" as const, textAlign: "center" as const }}>
+                  {firstName}
+                </div>
+                <div style={{ fontSize: 11, fontFamily: "monospace", color: C.muted,
+                  textAlign: "center" as const }}>
+                  {fmtTime(mp.total_play_seconds)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* FP legend */}
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" as const }}>
+          {(["green", "blue", "yellow", "red"] as FPColor[]).map((c) => (
+            <div key={c} style={{ display: "flex", alignItems: "center", gap: 4,
+              fontSize: 10, color: C.muted }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: FP_HEX[c], flexShrink: 0 }} />
+              {FP_LABEL[c]}
+            </div>
+          ))}
+        </div>
 
         {/* Goals */}
-        {goals.length > 0 && (
+        {match.track_goals && goals.length > 0 && (
           <>
-            {sec("Mål")}
+            {divider}
+            {sectionLabel("Mål")}
             {goals.map((g) => {
               const meta = g.meta as GoalMeta;
               const isHome = meta?.team === "home";
@@ -274,11 +319,13 @@ const ShareCard = forwardRef<HTMLDivElement, {
                 ? players.find((p) => p.player_id === meta!.assist_player_id)?.player
                 : null;
               return (
-                <div key={g.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontFamily: "monospace", color: C.muted, flexShrink: 0, marginTop: 1, minWidth: 38 }}>
+                <div key={g.id} style={{ display: "flex", alignItems: "flex-start",
+                  gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontFamily: "monospace", color: C.muted,
+                    flexShrink: 0, marginTop: 1, minWidth: 40 }}>
                     {fmtTime(g.at_seconds)}
                   </span>
-                  <span style={{ fontSize: 13, flexShrink: 0 }}>⚽</span>
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>⚽</span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                       {isHome ? playerLabel(g.player) : (match.opponent ?? "Motstander")}
@@ -292,54 +339,6 @@ const ShareCard = forwardRef<HTMLDivElement, {
                 </div>
               );
             })}
-            {divider}
-          </>
-        )}
-
-        {/* Play time */}
-        {sec("Spilletid")}
-        {sorted.map((mp) => {
-          const fp = calcFP(mp.total_play_seconds, elapsed, nField, total);
-          const pct = Math.round((mp.total_play_seconds / maxSec) * 100);
-          const label = mp.player.jersey_number != null
-            ? `#${mp.player.jersey_number} ${mp.player.name}`
-            : mp.player.name;
-          return (
-            <div key={mp.player_id} style={{ marginBottom: 9 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: FP_HEX[fp], flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {label}
-                </span>
-                <span style={{ fontSize: 11, fontFamily: "monospace", color: C.muted, flexShrink: 0, marginRight: 6 }}>
-                  {fmtTime(mp.total_play_seconds)}
-                </span>
-                <span style={{ fontSize: 10, color: C.label, flexShrink: 0, minWidth: 60, textAlign: "right" as const }}>
-                  {FP_LABEL[fp]}
-                </span>
-              </div>
-              <div style={{ height: 3, background: C.barBg, borderRadius: 2 }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: C.barFill, borderRadius: 2 }} />
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Subs */}
-        {subs.length > 0 && (
-          <>
-            {divider}
-            {sec("Bytter")}
-            {subs.map((s) => (
-              <div key={s.at} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, fontSize: 12 }}>
-                <span style={{ fontFamily: "monospace", color: C.muted, flexShrink: 0, minWidth: 38 }}>
-                  {fmtTime(s.at)}
-                </span>
-                <span style={{ color: "#16a34a", fontWeight: 600 }}>↑ {playerLabel(s.on?.player)}</span>
-                <span style={{ color: C.label }}>·</span>
-                <span style={{ color: "#dc2626", fontWeight: 600 }}>↓ {playerLabel(s.off?.player)}</span>
-              </div>
-            ))}
           </>
         )}
 
@@ -347,15 +346,17 @@ const ShareCard = forwardRef<HTMLDivElement, {
         {notes.trim() && (
           <>
             {divider}
-            {sec("Notat")}
-            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap" as const }}>
+            {sectionLabel("Notat")}
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.65,
+              whiteSpace: "pre-wrap" as const }}>
               {notes.trim()}
             </div>
           </>
         )}
 
         {/* Footer */}
-        <div style={{ marginTop: 24, paddingTop: 12, borderTop: `1px solid ${C.dim}`, fontSize: 10, color: C.label, textAlign: "center" as const }}>
+        <div style={{ marginTop: 22, paddingTop: 12, borderTop: `1px solid ${C.dim}`,
+          fontSize: 10, color: C.label, textAlign: "center" as const }}>
           Laget med FairCoach
         </div>
       </div>
