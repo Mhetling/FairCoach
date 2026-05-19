@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import { useTeam } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useCreateMatch } from "@/hooks/useMatches";
@@ -112,14 +113,7 @@ export function MatchSetup() {
       });
       navigate(`/matches/${match.id}`);
     } catch (err) {
-      console.error("Create match error:", err);
-      const msg =
-        err instanceof Error
-          ? err.message
-          : typeof err === "object" && err !== null && "message" in err
-            ? String((err as { message: unknown }).message)
-            : JSON.stringify(err);
-      toast({ title: "Kunne ikke opprette kamp", description: msg, variant: "error" });
+      toast({ title: "Kunne ikke opprette kamp", description: getDisplayError(err), variant: "error" });
     }
   }
 

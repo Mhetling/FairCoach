@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, ChevronRight } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Plus, ChevronRight, Settings } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import { useAllTeams, useCreateTeam } from "@/hooks/useTeams";
 import { SPORT_CONFIGS, ALL_SPORTS } from "@/lib/sportConfig";
 import { cn } from "@/lib/utils";
@@ -44,14 +45,21 @@ export function MyTeams() {
     } catch (err) {
       toast({
         title: "Kunne ikke opprette lag",
-        description: err instanceof Error ? err.message : "Ukjent feil",
+        description: getDisplayError(err),
         variant: "error",
       });
     }
   }
 
   return (
-    <AppShell title="Mine lag">
+    <AppShell
+      title="Mine lag"
+      rightSlot={
+        <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} aria-label="Innstillinger">
+          <Settings className="h-5 w-5" />
+        </Button>
+      }
+    >
       <div className="mb-6">
         <p className="font-display text-3xl font-black leading-tight text-ink">
           Mine lag
@@ -155,7 +163,15 @@ export function MyTeams() {
               />
             </div>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
+          <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+            Ved å opprette et lag bekrefter du at du som trener informerer foresatte om at
+            barnets fornavn og kampdata lagres i appen. Les mer i{" "}
+            <Link to="/privacy" className="underline underline-offset-2 hover:text-ink" onClick={() => setOpen(false)}>
+              personvernerklæringen
+            </Link>
+            .
+          </p>
+          <div className="mt-3 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>Avbryt</Button>
             <Button
               variant="primary"

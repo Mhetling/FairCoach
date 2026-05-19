@@ -7,9 +7,20 @@ import { MatchSetup } from "@/pages/MatchSetup";
 import { MatchLive } from "@/pages/MatchLive";
 import { MatchSummary } from "@/pages/MatchSummary";
 import { MatchHistory } from "@/pages/MatchHistory";
+import { PrivacyPage } from "@/pages/PrivacyPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
+  { path: "/privacy", element: <PrivacyPage /> },
+  {
+    path: "/settings",
+    element: (
+      <ProtectedRoute>
+        <SettingsPage />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/",
     element: (

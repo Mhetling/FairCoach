@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/AuthProvider";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 
 export function Login() {
   const { signInWithGoogle } = useAuth();
@@ -14,7 +15,7 @@ export function Login() {
     } catch (err) {
       toast({
         title: "Innlogging feilet",
-        description: err instanceof Error ? err.message : "Ukjent feil",
+        description: getDisplayError(err),
         variant: "error",
       });
       setLoading(false);

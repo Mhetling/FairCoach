@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import {
   useMatchDetail,
@@ -450,11 +451,7 @@ export function MatchSummary() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      console.error("Save error:", err);
-      const msg = err instanceof Error ? err.message
-        : typeof err === "object" && err !== null && "message" in err
-          ? String((err as { message: unknown }).message) : JSON.stringify(err);
-      toast({ title: "Kunne ikke lagre", description: msg, variant: "error" });
+      toast({ title: "Kunne ikke lagre", description: getDisplayError(err), variant: "error" });
     }
   }
 
@@ -489,8 +486,7 @@ export function MatchSummary() {
         }
         setSharing(false);
       }, "image/png");
-    } catch (err) {
-      console.error("Share error:", err);
+    } catch {
       toast({ title: "Deling feilet", variant: "error" });
       setSharing(false);
     }

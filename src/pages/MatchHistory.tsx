@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTeam } from "@/hooks/useTeams";
 import { useTeamMatches, useDeleteMatch } from "@/hooks/useMatches";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import type { Match, MatchStatus } from "@/types/database";
 
 function fmtDate(iso: string) {
@@ -104,7 +105,7 @@ export function MatchHistory() {
     } catch (err) {
       toast({
         title: "Kunne ikke slette kamp",
-        description: err instanceof Error ? err.message : "Ukjent feil",
+        description: getDisplayError(err),
         variant: "error",
       });
     }

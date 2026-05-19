@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import { useTeams, useCreateTeam, useDeleteTeam } from "@/hooks/useTeams";
 import type { SportId } from "@/types/database";
 
@@ -40,7 +41,7 @@ export function TeamList() {
     } catch (err) {
       toast({
         title: "Kunne ikke opprette lag",
-        description: err instanceof Error ? err.message : "Ukjent feil",
+        description: getDisplayError(err),
         variant: "error",
       });
     }
@@ -54,7 +55,7 @@ export function TeamList() {
     } catch (err) {
       toast({
         title: "Kunne ikke slette",
-        description: err instanceof Error ? err.message : "Ukjent feil",
+        description: getDisplayError(err),
         variant: "error",
       });
     }

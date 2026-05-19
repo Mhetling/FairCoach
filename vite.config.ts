@@ -33,8 +33,8 @@ export default defineConfig({
     },
   },
   server: {
+    // host: true lets you test on phone/tablet on the same network
     host: true,
     port: 5173,
-    allowedHosts: true,
   },
 });

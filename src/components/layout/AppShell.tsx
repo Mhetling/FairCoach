@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
+import { Footer } from "@/components/Footer";
 
 interface AppShellProps {
   title: string;
@@ -17,6 +18,7 @@ export function AppShell({ title, showBack, rightSlot, children }: AppShellProps
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 3rem)" }}
       >
         {children}
+        <Footer />
       </main>
     </div>
   );

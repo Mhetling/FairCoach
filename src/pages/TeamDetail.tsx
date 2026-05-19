@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { getDisplayError } from "@/lib/errors";
 import { useTeam, useUpdateTeam, useDeleteTeam } from "@/hooks/useTeams";
 import { useCreatePlayer, useDeletePlayer, usePlayers, useUpdatePlayer } from "@/hooks/usePlayers";
 import { useTeamMatches } from "@/hooks/useMatches";
@@ -22,6 +23,10 @@ import { cn } from "@/lib/utils";
 import type { Player, SportId } from "@/types/database";
 
 // ─── Player create / edit dialog ─────────────────────────────────────────────
+
+function isValidPlayerName(value: string): boolean {
+  return /^[\p{L}\s\-.]+$/u.test(value);
+}
 
 function PlayerDialog({
   open, onClose, teamId, player, positions,
@@ -49,7 +54,7 @@ function PlayerDialog({
   }
 
   async function onSubmit() {
-    if (!name.trim()) return;
+    if (!name.trim() || !isValidPlayerName(name.trim())) return;
     try {
       if (isEdit) {
         await update.mutateAsync({ id: player.id, team_id: teamId, name: name.trim(), jersey_number: jersey ? Number(jersey) : null, position: position || null });
@@ -61,7 +66,7 @@ function PlayerDialog({
       }
       onClose();
     } catch (err) {
-      toast({ title: isEdit ? "Kunne ikke oppdatere" : "Kunne ikke lagre", description: err instanceof Error ? err.message : "Ukjent feil", variant: "error" });
+      toast({ title: isEdit ? "Kunne ikke oppdatere" : "Kunne ikke lagre", description: getDisplayError(err), variant: "error" });
     }
   }
 
@@ -84,9 +89,20 @@ function PlayerDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="player-name">Navn</Label>
-            <Input id="player-name" autoFocus placeholder="Fornavn etternavn" value={name}
-              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSubmit()} />
+            <Label htmlFor="player-name">Fornavn</Label>
+            <Input
+              id="player-name"
+              autoFocus
+              placeholder="F.eks. Magnus eller Magnus E."
+              value={name}
+              maxLength={30}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+            />
+            {name.trim() && !isValidPlayerName(name.trim()) && (
+              <p className="text-xs text-danger">Kun bokstaver, mellomrom, bindestrek og punktum er tillatt.</p>
+            )}
+            <p className="text-xs text-ink-muted">Bruk kun fornavn for å beskytte barnas personvern.</p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="player-jersey">Draktnummer</Label>
@@ -116,7 +132,7 @@ function PlayerDialog({
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Avbryt</Button>
-          <Button variant="primary" onClick={onSubmit} disabled={isPending || !name.trim()}>
+          <Button variant="primary" onClick={onSubmit} disabled={isPending || !name.trim() || !isValidPlayerName(name.trim())}>
             {isPending ? "Lagrer …" : isEdit ? "Lagre endringer" : "Legg til"}
           </Button>
         </div>
@@ -175,7 +191,7 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
       toast({ title: "Lagret", variant: "success" });
       onClose();
     } catch (err) {
-      toast({ title: "Kunne ikke lagre", description: err instanceof Error ? err.message : "Ukjent feil", variant: "error" });
+      toast({ title: "Kunne ikke lagre", description: getDisplayError(err), variant: "error" });
     }
   }
 
@@ -186,7 +202,7 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
       toast({ title: "Laget er slettet", variant: "success" });
       navigate("/");
     } catch (err) {
-      toast({ title: "Kunne ikke slette", description: err instanceof Error ? err.message : "Ukjent feil", variant: "error" });
+      toast({ title: "Kunne ikke slette", description: getDisplayError(err), variant: "error" });
     }
   }
 
@@ -306,7 +322,7 @@ export function TeamDetail() {
     try {
       await remove.mutateAsync({ id, team_id: teamId });
     } catch (err) {
-      toast({ title: "Kunne ikke slette", description: err instanceof Error ? err.message : "Ukjent feil", variant: "error" });
+      toast({ title: "Kunne ikke slette", description: getDisplayError(err), variant: "error" });
     }
   }
 
