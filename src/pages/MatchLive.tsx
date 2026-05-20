@@ -44,7 +44,7 @@ import {
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
 } from "@/lib/hockeyRinks";
-import { HockeyRinkContent } from "@/components/HockeyRink";
+import { HockeyRinkHalfContent } from "@/components/HockeyRink";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -249,12 +249,14 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
 
 // ─── Pitch drop zone ──────────────────────────────────────────────────────────
 
-function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", fullLength = false }: {
+function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", fullLength = false, halfLength = false }: {
   children: React.ReactNode; anyDragging: boolean; spec: { width: number; length: number };
-  bgColor?: string; fullLength?: boolean;
+  bgColor?: string; fullLength?: boolean; halfLength?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: "pitch" });
-  const ar = fullLength
+  const ar = halfLength
+    ? `${spec.width} / ${spec.length / 2}`
+    : fullLength
     ? `${spec.width} / ${spec.length}`
     : `${spec.width} / ${spec.length * 2 / 3}`;
   return (
@@ -675,9 +677,14 @@ export function MatchLive() {
     ? resolveHockeyFormat(match.formation, match.players_on_field)
     : "5v5-full";
   const hockeyRinkPositions = RINK_POSITIONS[hockeyFormat];
+  // For horisontale baner (3v3-quarter) brukes 3v3-small sitt baneformat i visningen
+  const hockeyDisplaySpec = RINK_SPECS[hockeyFormat].orientation === "horizontal"
+    ? RINK_SPECS["3v3-small"]
+    : RINK_SPECS[hockeyFormat];
 
   const positions = isHockey
-    ? hockeyRinkPositions.map(p => ({ x: p.x, y: p.y }))
+    // y-verdier i RINK_POSITIONS er i [50,100] (eget halvfelt) → konverter til halvbane-% (0–100)
+    ? hockeyRinkPositions.map(p => ({ x: p.x, y: (p.y - 50) * 2 }))
     : (
         isHandball   ? getHandballPositions(match.players_on_field) :
         isBasketball ? getBasketballPositions(match.players_on_field) :
@@ -686,7 +693,7 @@ export function MatchLive() {
 
   const pitchSpec =
     isHandball   ? HANDBALL_COURT_SPEC :
-    isHockey     ? RINK_SPECS[hockeyFormat] :
+    isHockey     ? hockeyDisplaySpec :
     isBasketball ? BASKETBALL_COURT_SPEC :
     (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
 
@@ -924,7 +931,7 @@ export function MatchLive() {
             </button>
           )}
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
-            fullLength={isHockey}
+            halfLength={isHockey}
             bgColor={
               isHandball   ? "bg-[#C8A45A]" :
               isHockey     ? "bg-[#E8F4FB]" :
@@ -932,7 +939,7 @@ export function MatchLive() {
               "bg-green-700"
             }>
             {isHandball   ? <HandballCourtMarkings spec={HANDBALL_COURT_SPEC} /> :
-             isHockey     ? <HockeyRinkContent format={hockeyFormat} /> :
+             isHockey     ? <HockeyRinkHalfContent format={hockeyFormat} /> :
              isBasketball ? <BasketballCourtMarkings spec={BASKETBALL_COURT_SPEC} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }

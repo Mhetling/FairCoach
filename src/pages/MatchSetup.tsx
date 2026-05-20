@@ -16,7 +16,6 @@ import { getSportConfig } from "@/lib/sportConfig";
 import {
   RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
 } from "@/lib/hockeyRinks";
-import { HockeyRink } from "@/components/HockeyRink";
 import { cn } from "@/lib/utils";
 import type { SportId } from "@/types/database";
 
@@ -168,6 +167,7 @@ export function MatchSetup() {
                 <div className="grid grid-cols-2 gap-3">
                   {HOCKEY_FORMATS.map((fmt) => {
                     const spec = RINK_SPECS[fmt];
+                    const def = FORMAT_DEFAULTS[fmt];
                     const active = hockeyFormat === fmt;
                     return (
                       <button
@@ -181,13 +181,21 @@ export function MatchSetup() {
                             : "border-ink/15 bg-cream-dark hover:bg-ink/5",
                         )}
                       >
-                        <HockeyRink format={fmt} className="pointer-events-none rounded-lg" />
-                        <div>
-                          <div className="text-sm font-semibold text-ink">{spec.label}</div>
-                          <div className="text-xs text-ink-muted">{spec.ageGroup}</div>
-                          <div className="mt-0.5 text-xs text-ink-muted">
-                            {spec.playersOnField} spillere · {FORMAT_DEFAULTS[fmt].periodCount}×{FORMAT_DEFAULTS[fmt].periodLengthSeconds / 60} min
-                          </div>
+                        <div className="text-sm font-semibold text-ink leading-snug">{spec.label}</div>
+                        <div className="text-xs text-ink-muted">{spec.ageGroup}</div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          <span className={cn(
+                            "rounded px-1.5 py-0.5 text-xs font-medium",
+                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+                          )}>
+                            {spec.playersOnField} spillere
+                          </span>
+                          <span className={cn(
+                            "rounded px-1.5 py-0.5 text-xs font-medium",
+                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+                          )}>
+                            {def.periodCount}×{def.periodLengthSeconds / 60} min
+                          </span>
                         </div>
                       </button>
                     );

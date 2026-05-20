@@ -109,38 +109,40 @@ export interface RinkPosition {
   isGoalie: boolean;
 }
 
+// Alle y-verdier er i [50, 100] — eget halvfelt (y=50 = midtlinje, y=100 = eget mål).
+// I kampvisningen konverteres disse til halvbane-koordinater: viewY = (y - 50) * 2.
 export const RINK_POSITIONS: Record<HockeyFormat, RinkPosition[]> = {
-  // U7–U9: ingen faste roller for utespillere (NIHF anbefaler det ikke)
+  // U7–U9: MV + 2-1 formasjon (3 utespillere)
   '3v3-small': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 88, isGoalie: true  },
-    { id: 'u1', label: '1',  fullName: 'Utespiller', x: 25, y: 60, isGoalie: false },
-    { id: 'u2', label: '2',  fullName: 'Utespiller', x: 50, y: 40, isGoalie: false },
-    { id: 'u3', label: '3',  fullName: 'Utespiller', x: 75, y: 60, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 90, isGoalie: true  },
+    { id: 'u1', label: '1',  fullName: 'Utespiller', x: 28, y: 74, isGoalie: false },
+    { id: 'u2', label: '2',  fullName: 'Utespiller', x: 72, y: 74, isGoalie: false },
+    { id: 'u3', label: '3',  fullName: 'Utespiller', x: 50, y: 58, isGoalie: false },
   ],
-  // U10–U11: horisontal bane — eget mål til venstre (x≈0), angrep mot høyre (x≈100)
+  // U10–U11: samme 2-1 som 3v3-small (kampvisning bruker vertikalt halvfelt)
   '3v3-quarter': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 10, y: 50, isGoalie: true  },
-    { id: 'u1', label: '1',  fullName: 'Utespiller', x: 38, y: 25, isGoalie: false },
-    { id: 'u2', label: '2',  fullName: 'Utespiller', x: 55, y: 50, isGoalie: false },
-    { id: 'u3', label: '3',  fullName: 'Utespiller', x: 38, y: 75, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 90, isGoalie: true  },
+    { id: 'u1', label: '1',  fullName: 'Utespiller', x: 28, y: 74, isGoalie: false },
+    { id: 'u2', label: '2',  fullName: 'Utespiller', x: 72, y: 74, isGoalie: false },
+    { id: 'u3', label: '3',  fullName: 'Utespiller', x: 50, y: 58, isGoalie: false },
   ],
-  // U12: GK + 2 backer + senter + 2 vinger (2-1-2 på halv bane)
+  // U12: MV + 2-1-2 formasjon (5 utespillere)
   '5v5-small': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 90, isGoalie: true  },
-    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 72, isGoalie: false },
-    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 72, isGoalie: false },
-    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 50, isGoalie: false },
-    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 30, isGoalie: false },
-    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 30, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 92, isGoalie: true  },
+    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 78, isGoalie: false },
+    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 78, isGoalie: false },
+    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 64, isGoalie: false },
+    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 53, isGoalie: false },
+    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 53, isGoalie: false },
   ],
-  // U13+: GK + 2 backer + senter + 2 vinger (full bane, 2-1-2)
+  // U13+: MV + 2-1-2 formasjon
   '5v5-full': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 93, isGoalie: true  },
-    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 76, isGoalie: false },
-    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 76, isGoalie: false },
-    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 52, isGoalie: false },
-    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 38, isGoalie: false },
-    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 38, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 92, isGoalie: true  },
+    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 78, isGoalie: false },
+    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 78, isGoalie: false },
+    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 64, isGoalie: false },
+    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 53, isGoalie: false },
+    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 53, isGoalie: false },
   ],
 };
 

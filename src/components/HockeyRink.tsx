@@ -217,6 +217,49 @@ export function HockeyRinkContent({ format }: { format: HockeyFormat }) {
   );
 }
 
+// ─── Halvbane-eksport for kampvisning ─────────────────────────────────────────
+// Viser kun eget halvfelt (y = L/2 → L). Kun målgård, ingen mål-rektangel.
+// For 3v3-quarter (horisontal) brukes 3v3-small sitt baneformat.
+
+export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
+  const rawSpec = RINK_SPECS[format];
+  // Bruk 3v3-small-spec for horisontale baner (visuelt samme i kampvisning)
+  const spec = rawSpec.orientation === "horizontal" ? RINK_SPECS["3v3-small"] : rawSpec;
+  const { width: W, length: L, goalLineDistance: GL, creaseRadius: CR2,
+    blueLineDistance: BL, cornerRadius: CR } = spec;
+
+  const cx    = W / 2;
+  const sw    = W / 70;
+  const halfY = L / 2;
+
+  // Keeper-halvsirkel for eget mål (åpner MOT isen, oppover)
+  const botCrease = `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${L - GL} Z`;
+  // Bane-kontur (full, viewBox klipper til nedre halvdel)
+  const boardPath = roundedRect(0, 0, W, L, CR);
+  const bw = W / 40;
+
+  return (
+    <svg
+      viewBox={`0 ${halfY} ${W} ${halfY}`}
+      preserveAspectRatio="none"
+      className="absolute inset-0 h-full w-full pointer-events-none"
+    >
+      {/* Isflate */}
+      <path d={boardPath} fill={ICE} />
+      {/* Vant-kontur */}
+      <path d={boardPath} fill="none" stroke={BOARD_STROKE} strokeWidth={bw} />
+      {/* Midtlinje øverst i visningen */}
+      <line x1={0} y1={halfY} x2={W} y2={halfY} stroke={RED} strokeWidth={sw * 1.5} />
+      {/* Blålinje i eget halvfelt (kun 5v5-full) */}
+      {BL !== null && (
+        <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2} />
+      )}
+      {/* Målgård — ingen mål-rektangel */}
+      <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
+    </svg>
+  );
+}
+
 // ─── SVG-hjelper: avrundet rektangel ─────────────────────────────────────────
 
 function roundedRect(x: number, y: number, w: number, h: number, r: number): string {
