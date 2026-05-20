@@ -288,6 +288,12 @@ const ShareCard = forwardRef<HTMLDivElement, {
                   textAlign: "center" as const }}>
                   {fmtTime(mp.total_play_seconds)}
                 </div>
+                {mp.player.position === "GK" && (
+                  <div style={{ fontSize: 9, color: C.label, textAlign: "center" as const,
+                    letterSpacing: 0.5, marginTop: -2 }}>
+                    keeper
+                  </div>
+                )}
               </div>
             );
           })}
@@ -389,7 +395,8 @@ function buildCopyText({ opponent, scoreHome, scoreAway, players, events, elapse
     .map((p) => {
       const fp = calcFP(p.total_play_seconds, elapsed, onField, total);
       const dot = { blue: "🔵", green: "🟢", yellow: "🟡", red: "🔴" }[fp];
-      return `${dot} ${p.player.name}: ${fmtTime(p.total_play_seconds)}`;
+      const gk = p.player.position === "GK" ? " (keeper)" : "";
+      return `${dot} ${p.player.name}${gk}: ${fmtTime(p.total_play_seconds)}`;
     });
 
   return [
@@ -530,6 +537,7 @@ export function MatchSummary() {
                       <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", FP_DOT[fp])} />
                       <span className="flex-1 truncate text-sm font-medium text-ink">
                         {mp.player.jersey_number != null ? `#${mp.player.jersey_number} ${mp.player.name}` : mp.player.name}
+                        {mp.player.position === "GK" && <span className="ml-1 text-xs font-normal text-ink-muted">(keeper)</span>}
                       </span>
                       <span className="shrink-0 text-sm tabular-nums text-ink-muted">{fmtTime(mp.total_play_seconds)}</span>
                       <span className="w-16 shrink-0 text-right text-xs text-ink/40">{FP_LABEL[fp]}</span>
