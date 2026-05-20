@@ -63,12 +63,7 @@ function fmtTime(s: number) {
 }
 
 type FPColor = "blue" | "green" | "yellow" | "red";
-const FP_DOT: Record<FPColor, string> = {
-  blue:   "bg-blue-500",
-  green:  "bg-green-500",
-  yellow: "bg-yellow-400",
-  red:    "bg-red-500",
-};
+
 const FP_CIRCLE_BG: Record<FPColor, string> = {
   blue:   "bg-blue-500",
   green:  "bg-green-500",
@@ -317,22 +312,23 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
 }) {
+  const firstName = mp.player.name.split(" ")[0];
+  const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
   return (
     <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
-      <span className="text-[10px] font-medium text-white/90 drop-shadow">{fmtTime(playSeconds)}</span>
       <div className={cn(
-        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-display text-sm font-bold transition-all duration-150 shadow-md",
+        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md",
+        fontSize,
         isPendingSwap
           ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
-          : "border-white bg-ink text-cream",
+          : cn("border-white", FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor]),
       )}>
-        {mp.player.jersey_number ?? mp.player.name.charAt(0).toUpperCase()}
+        {firstName}
       </div>
-      <span className="max-w-[46px] truncate text-center text-[10px] font-semibold leading-tight text-white drop-shadow">
-        {mp.player.name.split(" ")[0]}
+      <span className="text-[10px] font-mono text-white/90 drop-shadow mt-0.5">
+        {fmtTime(playSeconds)}
       </span>
-      <div className={cn("h-2 w-2 rounded-full", FP_DOT[fpColor])} />
     </div>
   );
 }
