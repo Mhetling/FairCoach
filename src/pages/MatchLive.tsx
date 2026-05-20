@@ -45,6 +45,13 @@ import {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
+// Auto-pause the clock this many seconds past the period's scheduled end
+const AUTO_STOP_BUFFER_SEC = 10 * 60;
+
+function lsClockKey(matchId: string) {
+  return `faircoach_clock_${matchId}`;
+}
+
 const CROP_START = 1 / 3; // show from y=33% (1/3 into opponent half) to y=100% (own goal)
 
 function toCroppedY(y: number): number {
@@ -554,15 +561,52 @@ export function MatchLive() {
   const playersRef = useRef<RichMatchPlayer[]>([]);
   const fieldPlayersRef = useRef<RichMatchPlayer[]>([]);
 
+  // Wall-clock refs — allows the timer to survive backgrounding and app kills
+  const clockStartedAt = useRef<number | null>(null);   // Date.now() when clock last started
+  const clockBaseElapsed = useRef<number>(0);            // elapsed value at that moment
+  const periodLengthRef = useRef<number>(0);             // for auto-stop inside interval
+
+  function computeLiveElapsed(): number {
+    if (clockStartedAt.current === null) return elapsed;
+    return clockBaseElapsed.current + Math.floor((Date.now() - clockStartedAt.current) / 1000);
+  }
+
   useEffect(() => {
     if (!data) return;
     const { match, players } = data;
-    setElapsed(match.elapsed_seconds);
+    periodLengthRef.current = match.period_length_seconds;
+    periodStartAt.current = (match.current_period - 1) * match.period_length_seconds;
+
+    let initElapsed = match.elapsed_seconds;
+
+    if (match.status === "live" && matchId) {
+      // Recover wall-clock time: works for backgrounded tab AND killed app
+      try {
+        const stored = localStorage.getItem(lsClockKey(matchId));
+        if (stored) {
+          const { startedAt, baseElapsed } = JSON.parse(stored) as { startedAt: number; baseElapsed: number };
+          const MAX_SESSION_MS = 3 * 60 * 60 * 1000; // 3 hours — sanity cap
+          if (Date.now() - startedAt < MAX_SESSION_MS) {
+            initElapsed = baseElapsed + Math.floor((Date.now() - startedAt) / 1000);
+            clockStartedAt.current = startedAt;
+            clockBaseElapsed.current = baseElapsed;
+          }
+        } else {
+          clockStartedAt.current = Date.now();
+          clockBaseElapsed.current = match.elapsed_seconds;
+        }
+      } catch {
+        clockStartedAt.current = Date.now();
+        clockBaseElapsed.current = match.elapsed_seconds;
+      }
+    }
+
+    setElapsed(initElapsed);
     setRunning(match.status === "live");
     setScoreHome(match.score_home ?? 0);
     setScoreAway(match.score_away ?? 0);
     setFormation(match.formation);
-    periodStartAt.current = (match.current_period - 1) * match.period_length_seconds;
+
     const initCameOn: Record<string, number> = {};
     const initPos: Record<string, number> = {};
     players.filter((p) => p.on_field).forEach((p, i) => {
@@ -574,13 +618,40 @@ export function MatchLive() {
   }, [data?.match.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    } else {
+    if (!running) {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
     }
+    intervalRef.current = setInterval(() => {
+      if (clockStartedAt.current === null) return;
+      const newElapsed = clockBaseElapsed.current + Math.floor((Date.now() - clockStartedAt.current) / 1000);
+      setElapsed(newElapsed);
+
+      // Auto-pause 10 minutes past the period's scheduled end
+      const pLen = periodLengthRef.current;
+      const periodElapsed = newElapsed - periodStartAt.current;
+      if (pLen > 0 && periodElapsed >= pLen + AUTO_STOP_BUFFER_SEC) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        clockStartedAt.current = null;
+        if (matchId) localStorage.removeItem(lsClockKey(matchId));
+        setRunning(false);
+        updateMatch.mutate({ status: "paused", elapsed_seconds: newElapsed });
+      }
+    }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running]);
+  }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-sync elapsed from wall clock whenever the tab becomes visible again
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (!document.hidden && clockStartedAt.current !== null) {
+        setElapsed(clockBaseElapsed.current + Math.floor((Date.now() - clockStartedAt.current) / 1000));
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
 
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
@@ -673,6 +744,12 @@ export function MatchLive() {
   }
 
   async function handleStart() {
+    const now = Date.now();
+    clockBaseElapsed.current = elapsed;
+    clockStartedAt.current = now;
+    if (matchId) {
+      localStorage.setItem(lsClockKey(matchId), JSON.stringify({ startedAt: now, baseElapsed: elapsed }));
+    }
     setRunning(true);
     players.filter((p) => p.on_field).forEach((p) => {
       cameOnAt.current[p.player_id] ??= elapsed;
@@ -681,25 +758,37 @@ export function MatchLive() {
   }
 
   async function handlePause() {
+    const currentElapsed = computeLiveElapsed();
+    clockStartedAt.current = null;
+    if (matchId) localStorage.removeItem(lsClockKey(matchId));
+    setElapsed(currentElapsed);
     setRunning(false);
-    await updateMatch.mutateAsync({ status: "paused", elapsed_seconds: elapsed });
+    await updateMatch.mutateAsync({ status: "paused", elapsed_seconds: currentElapsed });
   }
 
   async function handleEndPeriod() {
+    const currentElapsed = computeLiveElapsed();
+    clockStartedAt.current = null;
+    if (matchId) localStorage.removeItem(lsClockKey(matchId));
+    setElapsed(currentElapsed);
     setRunning(false);
+    const fieldPlayerFinalSeconds = fieldPlayers.map((mp) => {
+      const came = cameOnAt.current[mp.player_id] ?? currentElapsed;
+      return {
+        player_id: mp.player_id,
+        total_play_seconds: mp.total_play_seconds + Math.max(0, currentElapsed - came),
+      };
+    });
     await endPeriod.mutateAsync({
-      elapsed,
+      elapsed: currentElapsed,
       currentPeriod: match.current_period,
       periodCount: match.period_count,
-      fieldPlayerFinalSeconds: fieldPlayers.map((mp) => ({
-        player_id: mp.player_id,
-        total_play_seconds: getPlayTime(mp),
-      })),
+      fieldPlayerFinalSeconds,
     });
     if (isLastPeriod) {
       navigate(`/matches/${matchId}/summary`);
     } else {
-      periodStartAt.current = elapsed;
+      periodStartAt.current = currentElapsed;
     }
   }
 
