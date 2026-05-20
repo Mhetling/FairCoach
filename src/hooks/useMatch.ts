@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Match, MatchEvent, MatchPlayer, PlayerMeta } from "@/types/database";
+import type { Match, MatchEvent, MatchPlayer, PlayerMeta, ZoneTime } from "@/types/database";
 
 export type RichMatchPlayer = MatchPlayer & {
   player: { id: string; name: string; jersey_number: number | null; position: string | null };
@@ -174,6 +174,29 @@ export function useUpdatePlayerPlayTime(matchId: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
   });
 }
+
+export function useUpdateAllPlayerMetas(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { playerId: string; meta: PlayerMeta | null }[]) => {
+      if (!matchId || updates.length === 0) return;
+      await Promise.all(
+        updates.map(({ playerId, meta }) =>
+          supabase
+            .from("match_players")
+            .update({ meta })
+            .eq("match_id", matchId)
+            .eq("player_id", playerId)
+            .then(({ error }) => { if (error) throw error; }),
+        ),
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
+// Suppress unused import warning — ZoneTime is re-exported for consumers
+export type { ZoneTime };
 
 export function useUpdatePlayerMeta(matchId: string | undefined) {
   const qc = useQueryClient();

@@ -30,12 +30,14 @@ import {
   useMatchDetail,
   useMatchEvents,
   useSubstitute,
+  useUpdateAllPlayerMetas,
   useUpdateMatch,
   useUpdatePlayerMeta,
   useUpdatePlayerPlayTime,
   type RichMatchEvent,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
+import type { ZoneTime } from "@/types/database";
 import { useTeam } from "@/hooks/useTeams";
 import {
   PITCH_SPECS, HANDBALL_COURT_SPEC, BASKETBALL_COURT_SPEC,
@@ -92,6 +94,36 @@ function calcFP(play: number, elapsed: number, onField: number, total: number): 
   if (ratio >= 0.9) return "green";
   if (ratio >= 0.6) return "yellow";
   return "red";
+}
+
+// ─── Zone helpers ─────────────────────────────────────────────────────────────
+
+export const ZONE_DISPLAY: Record<string, string> = {
+  keeper: "Keeper", back: "Back", midt: "Midt", angrep: "Angrep",
+};
+const ZONE_ORDER = ["keeper", "back", "midt", "angrep"];
+
+function computeZoneForSlot(
+  posIdx: number,
+  sportId: string,
+  hockeyFmt: HockeyFormat,
+  playersOnField: number,
+  formation: string | null,
+): string {
+  if (sportId === "basketball") return "midt";
+  if (sportId === "hockey") {
+    const rinkPos = RINK_POSITIONS[hockeyFmt][posIdx];
+    if (rinkPos?.isGoalie) return "keeper";
+    const y = rinkPos?.y ?? 60;
+    return y > 70 ? "back" : y >= 55 ? "midt" : "angrep";
+  }
+  // Soccer / handball — index 0 is always GK
+  if (posIdx === 0) return "keeper";
+  const rawPositions = sportId === "handball"
+    ? getHandballPositions(playersOnField)
+    : getFormationPositions(playersOnField, formation);
+  const y = rawPositions[posIdx]?.y ?? 65;
+  return y > 75 ? "back" : y >= 55 ? "midt" : "angrep";
 }
 
 // ─── SVG pitch markings ───────────────────────────────────────────────────────
@@ -400,22 +432,18 @@ function BenchItem({ mp, playSeconds, fpColor, priority, onLongPressStart, onLon
 // ─── Player detail / play-time edit dialog ────────────────────────────────────
 
 const NOTE_PRESETS = ["Skadet", "Ville ikke spille", "Foreldreavtale", "Utvist"];
-const ZONE_OPTIONS = [
-  { value: "back", label: "Back" },
-  { value: "midt", label: "Midt" },
-  { value: "angrep", label: "Angrep" },
-];
 
-function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }: {
+function PlayerDetailDialog({ mp, currentPlaySeconds, events, liveZones, onSave, onClose }: {
   mp: RichMatchPlayer;
   currentPlaySeconds: number;
   events: RichMatchEvent[];
-  onSave: (newSeconds: number, meta: { note?: string; zones?: string[] } | null) => Promise<void>;
+  liveZones: ZoneTime[];
+  onSave: (newSeconds: number, meta: { note?: string; freeNote?: string } | null) => Promise<void>;
   onClose: () => void;
 }) {
   const [editSeconds, setEditSeconds] = useState(currentPlaySeconds);
   const [note, setNote] = useState<string | null>(mp.meta?.note ?? null);
-  const [zones, setZones] = useState<string[]>(mp.meta?.zones ?? []);
+  const [freeNote, setFreeNote] = useState(mp.meta?.freeNote ?? "");
   const [saving, setSaving] = useState(false);
 
   const playerEvents = events
@@ -430,14 +458,10 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
     return `${min}' — ${e.event_type}`;
   }
 
-  function toggleZone(z: string) {
-    setZones((prev) => prev.includes(z) ? prev.filter((x) => x !== z) : [...prev, z]);
-  }
-
   async function handleSave() {
     setSaving(true);
-    const meta = (note || zones.length > 0)
-      ? { ...(note ? { note } : {}), ...(zones.length > 0 ? { zones } : {}) }
+    const meta = (note || freeNote.trim())
+      ? { ...(note ? { note } : {}), ...(freeNote.trim() ? { freeNote: freeNote.trim() } : {}) }
       : null;
     try { await onSave(editSeconds, meta); } finally { setSaving(false); }
   }
@@ -468,6 +492,26 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
           </div>
         )}
 
+        {/* Zone breakdown — auto-tracked from position */}
+        {liveZones.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Posisjoner spilt</p>
+            <div className="flex flex-wrap gap-2">
+              {[...liveZones]
+                .sort((a, b) => ZONE_ORDER.indexOf(a.zone) - ZONE_ORDER.indexOf(b.zone))
+                .map((zt) => (
+                  <div key={zt.zone}
+                    className="rounded-lg border border-ink/15 bg-cream-dark px-3 py-2 text-sm">
+                    <span className="font-medium text-ink">{ZONE_DISPLAY[zt.zone] ?? zt.zone}</span>
+                    <span className="ml-2 font-mono text-xs text-ink-muted">
+                      {Math.round(zt.seconds / 60)} min
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Status note */}
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Status</p>
@@ -495,22 +539,16 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
           </div>
         </div>
 
-        {/* Zones played */}
+        {/* Free text note */}
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Posisjoner spilt</p>
-          <div className="flex gap-2">
-            {ZONE_OPTIONS.map((z) => (
-              <button key={z.value} type="button" onClick={() => toggleZone(z.value)}
-                className={cn(
-                  "flex-1 rounded-lg border py-2 text-sm font-medium transition-colors",
-                  zones.includes(z.value)
-                    ? "border-blue-600 bg-blue-100 text-blue-900"
-                    : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
-                )}>
-                {z.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Notat</p>
+          <textarea
+            value={freeNote}
+            onChange={(e) => setFreeNote(e.target.value)}
+            placeholder="Andre kommentarer …"
+            rows={2}
+            className="w-full resize-none rounded-md border border-ink/20 bg-cream-dark px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-ink/30"
+          />
         </div>
 
         {/* Play time editor */}
@@ -736,6 +774,7 @@ export function MatchLive() {
   const { data: matchEvents = [] } = useMatchEvents(matchId);
   const updatePlayerPlayTime = useUpdatePlayerPlayTime(matchId);
   const updatePlayerMeta = useUpdatePlayerMeta(matchId);
+  const updateAllPlayerMetas = useUpdateAllPlayerMetas(matchId);
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -753,6 +792,8 @@ export function MatchLive() {
   const cameOnAt = useRef<Record<string, number>>({});
   const periodStartAt = useRef(0);
   const positionMap = useRef<Record<string, number>>({});
+  const zoneAccumRef = useRef<Record<string, ZoneTime[]>>({});
+  const zoneStartRef = useRef<Record<string, { zone: string; startElapsed: number }>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPointerPos = useRef<{ x: number; y: number } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -814,6 +855,25 @@ export function MatchLive() {
     });
     cameOnAt.current = initCameOn;
     positionMap.current = initPos;
+
+    // Init zone accumulator from previously saved DB data
+    const initZoneAccum: Record<string, ZoneTime[]> = {};
+    players.forEach((p) => {
+      const z = p.meta?.zones;
+      if (Array.isArray(z) && z.length > 0 && z[0] !== null && typeof z[0] === "object" && "zone" in z[0]) {
+        initZoneAccum[p.player_id] = z;
+      }
+    });
+    zoneAccumRef.current = initZoneAccum;
+
+    // Start zone tracking for field players
+    const hFmt = resolveHockeyFormat(match.formation, match.players_on_field);
+    const initZoneStart: Record<string, { zone: string; startElapsed: number }> = {};
+    players.filter((p) => p.on_field).forEach((p, i) => {
+      const zone = computeZoneForSlot(i, match.sport_id, hFmt, match.players_on_field, match.formation);
+      initZoneStart[p.player_id] = { zone, startElapsed: match.elapsed_seconds };
+    });
+    zoneStartRef.current = initZoneStart;
   }, [data?.match.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -953,6 +1013,42 @@ export function MatchLive() {
     return posIdx === 0;
   }
 
+  // ── Zone tracking ──────────────────────────────────────────────────────────
+
+  function getZoneForSlot(posIdx: number): string {
+    return computeZoneForSlot(posIdx, match.sport_id, hockeyFormat, match.players_on_field, formation);
+  }
+
+  function startZone(playerId: string, posIdx: number, atElapsed: number) {
+    zoneStartRef.current[playerId] = { zone: getZoneForSlot(posIdx), startElapsed: atElapsed };
+  }
+
+  function endZone(playerId: string, atElapsed: number) {
+    const start = zoneStartRef.current[playerId];
+    if (!start) return;
+    delete zoneStartRef.current[playerId];
+    const seconds = Math.max(0, atElapsed - start.startElapsed);
+    if (seconds === 0) return;
+    const acc = zoneAccumRef.current[playerId] ?? [];
+    const existing = acc.find((z) => z.zone === start.zone);
+    if (existing) existing.seconds += seconds;
+    else acc.push({ zone: start.zone, seconds });
+    zoneAccumRef.current[playerId] = acc;
+  }
+
+  function getLiveZones(playerId: string): ZoneTime[] {
+    const acc = zoneAccumRef.current[playerId] ?? [];
+    const ongoing = zoneStartRef.current[playerId];
+    if (!ongoing) return acc;
+    const liveSecs = Math.max(0, elapsed - ongoing.startElapsed);
+    if (liveSecs === 0) return acc;
+    const merged = acc.map((z) => ({ ...z }));
+    const existing = merged.find((z) => z.zone === ongoing.zone);
+    if (existing) existing.seconds += liveSecs;
+    else merged.push({ zone: ongoing.zone, seconds: liveSecs });
+    return merged;
+  }
+
   const MAX_DROP_RADIUS_PX = 70;
 
   function closestFieldPlayer(cx: number, cy: number, excludeId?: string): RichMatchPlayer | null {
@@ -984,6 +1080,9 @@ export function MatchLive() {
     setRunning(true);
     players.filter((p) => p.on_field).forEach((p) => {
       cameOnAt.current[p.player_id] ??= elapsed;
+      if (!zoneStartRef.current[p.player_id]) {
+        startZone(p.player_id, positionMap.current[p.player_id] ?? 0, elapsed);
+      }
     });
     await updateMatch.mutateAsync({ status: "live", elapsed_seconds: elapsed });
   }
@@ -1027,12 +1126,26 @@ export function MatchLive() {
       ),
     }));
 
-    await endPeriod.mutateAsync({
-      elapsed: currentElapsed,
-      currentPeriod: match.current_period,
-      periodCount: match.period_count,
-      fieldPlayerFinalSeconds,
-    });
+    // Finalise zone tracking for all field players
+    fieldPlayers.forEach((mp) => endZone(mp.player_id, currentElapsed));
+
+    // Save accumulated zones for all players that have data
+    const zoneSaves = players
+      .filter((p) => (zoneAccumRef.current[p.player_id]?.length ?? 0) > 0)
+      .map((p) => ({
+        playerId: p.player_id,
+        meta: { ...(p.meta ?? {}), zones: zoneAccumRef.current[p.player_id] } as import("@/types/database").PlayerMeta,
+      }));
+
+    await Promise.all([
+      endPeriod.mutateAsync({
+        elapsed: currentElapsed,
+        currentPeriod: match.current_period,
+        periodCount: match.period_count,
+        fieldPlayerFinalSeconds,
+      }),
+      ...(zoneSaves.length > 0 ? [updateAllPlayerMetas.mutateAsync(zoneSaves)] : []),
+    ]);
     if (isLastPeriod) {
       navigate(`/matches/${matchId}/summary`);
     } else {
@@ -1088,13 +1201,17 @@ export function MatchLive() {
     if (!pos) return;
 
     if (draggedPlayer.on_field) {
-      // Field ↔ Field: swap positions in the formation (no substitution logged)
+      // Field ↔ Field: swap positions (zone tracking updates, no substitution logged)
       const targetPlayer = closestFieldPlayer(pos.x, pos.y, draggedPlayer.player_id);
       if (!targetPlayer) return;
       const fromIdx = positionMap.current[draggedPlayer.player_id];
       const toIdx = positionMap.current[targetPlayer.player_id];
+      endZone(draggedPlayer.player_id, elapsed);
+      endZone(targetPlayer.player_id, elapsed);
       if (fromIdx !== undefined) positionMap.current[targetPlayer.player_id] = fromIdx;
       if (toIdx !== undefined) positionMap.current[draggedPlayer.player_id] = toIdx;
+      if (toIdx !== undefined) startZone(draggedPlayer.player_id, toIdx, elapsed);
+      if (fromIdx !== undefined) startZone(targetPlayer.player_id, fromIdx, elapsed);
       setSwapVersion((v) => v + 1);
     } else {
       // Bench → Field: substitution
@@ -1102,10 +1219,21 @@ export function MatchLive() {
       if (!fieldPlayer) return;
       const goingOffTotalSeconds = getPlayTime(fieldPlayer);
       const posIdx = positionMap.current[fieldPlayer.player_id] ?? 0;
+      // Finalise zone for going-off player and save immediately
+      endZone(fieldPlayer.player_id, elapsed);
+      const goingOffZones = zoneAccumRef.current[fieldPlayer.player_id];
+      if (goingOffZones?.length) {
+        const goingOffMeta = playersRef.current.find((p) => p.player_id === fieldPlayer.player_id)?.meta;
+        updatePlayerMeta.mutate({
+          playerId: fieldPlayer.player_id,
+          meta: { ...(goingOffMeta ?? {}), zones: goingOffZones },
+        });
+      }
       positionMap.current[draggedPlayer.player_id] = posIdx;
       delete positionMap.current[fieldPlayer.player_id];
       cameOnAt.current[draggedPlayer.player_id] = elapsed;
       delete cameOnAt.current[fieldPlayer.player_id];
+      startZone(draggedPlayer.player_id, posIdx, elapsed);
       substitute.mutate({
         comingOnId: draggedPlayer.player_id,
         goingOffId: fieldPlayer.player_id,
@@ -1332,14 +1460,19 @@ export function MatchLive() {
               mp={mp}
               currentPlaySeconds={getPlayTime(mp)}
               events={matchEvents}
+              liveZones={getLiveZones(mp.player_id)}
               onClose={() => setPlayerDetailId(null)}
-              onSave={async (newSeconds, meta) => {
+              onSave={async (newSeconds, noteMeta) => {
                 if (mp.on_field) {
                   cameOnAt.current[mp.player_id] = elapsed;
                 }
+                // Merge new note/freeNote with existing DB zones (zones tracked separately)
+                const fullMeta = noteMeta
+                  ? { ...(mp.meta ?? {}), ...noteMeta }
+                  : mp.meta?.zones?.length ? { zones: mp.meta.zones } : null;
                 await Promise.all([
                   updatePlayerPlayTime.mutateAsync({ playerId: mp.player_id, totalPlaySeconds: newSeconds }),
-                  updatePlayerMeta.mutateAsync({ playerId: mp.player_id, meta }),
+                  updatePlayerMeta.mutateAsync({ playerId: mp.player_id, meta: fullMeta }),
                 ]);
                 setPlayerDetailId(null);
               }}

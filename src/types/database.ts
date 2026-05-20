@@ -54,7 +54,8 @@ export type Match = {
   created_at: string;
 };
 
-export type PlayerMeta = { note?: string; zones?: string[] };
+export type ZoneTime = { zone: string; seconds: number };
+export type PlayerMeta = { note?: string; freeNote?: string; zones?: ZoneTime[] };
 
 export type MatchPlayer = {
   match_id: string;
