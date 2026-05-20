@@ -274,19 +274,19 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", full
 
 // ─── Field token ──────────────────────────────────────────────────────────────
 
-function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel }: {
+function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel, isGK }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
-  positionLabel?: string;
+  positionLabel?: string; isGK?: boolean;
 }) {
   const firstName = mp.player.name.split(" ")[0];
   const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
   return (
     <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
-      {positionLabel && (
+      {(positionLabel ?? (isGK ? "MV" : undefined)) && (
         <span className="rounded bg-black/40 px-1 py-px text-[8px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm">
-          {positionLabel}
+          {positionLabel ?? "MV"}
         </span>
       )}
       <div className={cn(
@@ -294,6 +294,8 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
         fontSize,
         isPendingSwap
           ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
+          : isGK
+          ? "border-white/50 bg-slate-400 text-white"
           : cn("border-white", FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor]),
       )}>
         {firstName}
@@ -764,6 +766,17 @@ export function MatchLive() {
     return calcFP(getPlayTime(mp), elapsed, match.players_on_field, players.length);
   }
 
+  // Returns true when a field player is currently occupying the GK slot.
+  // Basketball has no GK; for hockey the slot has isGoalie=true; for all other
+  // sports the GK is always at formation index 0.
+  function isInGKSlot(mp: RichMatchPlayer): boolean {
+    if (isBasketball) return false;
+    const posIdx = positionMap.current[mp.player_id];
+    if (posIdx === undefined) return false;
+    if (isHockey) return hockeyRinkPositions[posIdx]?.isGoalie === true;
+    return posIdx === 0;
+  }
+
   const MAX_DROP_RADIUS_PX = 70;
 
   function closestFieldPlayer(cx: number, cy: number): RichMatchPlayer | null {
@@ -813,13 +826,30 @@ export function MatchLive() {
     if (matchId) localStorage.removeItem(lsClockKey(matchId));
     setElapsed(currentElapsed);
     setRunning(false);
-    const fieldPlayerFinalSeconds = fieldPlayers.map((mp) => {
-      const came = cameOnAt.current[mp.player_id] ?? currentElapsed;
-      return {
-        player_id: mp.player_id,
-        total_play_seconds: mp.total_play_seconds + Math.max(0, currentElapsed - came),
-      };
-    });
+
+    // Compute raw period seconds per field player
+    const periodSecs = fieldPlayers.map((mp) => ({
+      mp,
+      secs: Math.max(0, currentElapsed - (cameOnAt.current[mp.player_id] ?? currentElapsed)),
+    }));
+
+    // If there is a GK on the field, credit them with the average outfield time
+    // so that keeper stints don't skew fair-play calculations in future periods.
+    const gkEntry = periodSecs.find(({ mp }) => isInGKSlot(mp));
+    const outfieldSecs = gkEntry
+      ? periodSecs.filter(({ mp }) => !isInGKSlot(mp)).map(({ secs }) => secs)
+      : periodSecs.map(({ secs }) => secs);
+    const avgOutfieldSecs = outfieldSecs.length > 0
+      ? Math.round(outfieldSecs.reduce((a, b) => a + b, 0) / outfieldSecs.length)
+      : 0;
+
+    const fieldPlayerFinalSeconds = periodSecs.map(({ mp, secs }) => ({
+      player_id: mp.player_id,
+      total_play_seconds: mp.total_play_seconds + (
+        gkEntry && mp.player_id === gkEntry.mp.player_id ? avgOutfieldSecs : secs
+      ),
+    }));
+
     await endPeriod.mutateAsync({
       elapsed: currentElapsed,
       currentPeriod: match.current_period,
@@ -998,13 +1028,16 @@ export function MatchLive() {
             }
             {fieldPlayers.map((mp, i) => {
               const posIdx = positionMap.current[mp.player_id] ?? i;
+              const inGKSlot = isInGKSlot(mp);
+              // Hockey: use rink position label; other sports: show "MV" for GK slot
               const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
               return (
                 <FieldToken key={mp.player_id} mp={mp}
                   pos={positions[posIdx] ?? { x: 50, y: 50 }}
                   playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
                   isPendingSwap={mp.player_id === pendingSwapId}
-                  positionLabel={posLabel} />
+                  positionLabel={posLabel}
+                  isGK={inGKSlot} />
               );
             })}
             {activeId && (
@@ -1023,6 +1056,9 @@ export function MatchLive() {
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-green-500" />Balansert</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />Litt under</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500" />Mye under</span>
+          {fieldPlayers.some((mp) => isInGKSlot(mp)) && (
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-400" />MV (telles ikke)</span>
+          )}
         </div>
 
         {/* Substitution recommendation */}
