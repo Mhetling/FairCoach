@@ -13,8 +13,14 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { useCreateMatch } from "@/hooks/useMatches";
 import { ELEVEN_FORMATIONS, DEFAULT_11_FORMATION } from "@/lib/formations";
 import { getSportConfig } from "@/lib/sportConfig";
+import {
+  RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
+} from "@/lib/hockeyRinks";
+import { HockeyRink } from "@/components/HockeyRink";
 import { cn } from "@/lib/utils";
 import type { SportId } from "@/types/database";
+
+const HOCKEY_FORMATS: HockeyFormat[] = ["3v3-small", "3v3-quarter", "5v5-small", "5v5-full"];
 
 function OptionButton({
   active, onClick, children,
@@ -44,12 +50,20 @@ export function MatchSetup() {
 
   const sportId = (team?.sport_id ?? "soccer") as SportId;
   const config = getSportConfig(sportId);
+  const isHockey = sportId === "hockey";
 
   const [opponent, setOpponent] = useState("");
-  const [playersOnField, setPlayersOnField] = useState(config.defaultPlayersOnField);
-  const [periodLengthSecs, setPeriodLengthSecs] = useState(config.defaultPeriodLengthSeconds);
+  const [hockeyFormat, setHockeyFormat] = useState<HockeyFormat>("5v5-full");
+  const [playersOnField, setPlayersOnField] = useState(
+    isHockey ? RINK_SPECS["5v5-full"].playersOnField : config.defaultPlayersOnField,
+  );
+  const [periodLengthSecs, setPeriodLengthSecs] = useState(
+    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodLengthSeconds : config.defaultPeriodLengthSeconds,
+  );
   const [customMinutes, setCustomMinutes] = useState("");
-  const [periodCount, setPeriodCount] = useState(config.defaultPeriodCount);
+  const [periodCount, setPeriodCount] = useState(
+    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodCount : config.defaultPeriodCount,
+  );
   const [formation, setFormation] = useState(DEFAULT_11_FORMATION);
   const [trackGoals, setTrackGoals] = useState(config.trackGoalsDefault);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -85,6 +99,13 @@ export function MatchSetup() {
 
   const isSoccer11 = sportId === "soccer" && playersOnField === 11;
 
+  function selectHockeyFormat(fmt: HockeyFormat) {
+    setHockeyFormat(fmt);
+    setPlayersOnField(RINK_SPECS[fmt].playersOnField);
+    setPeriodLengthSecs(FORMAT_DEFAULTS[fmt].periodLengthSeconds);
+    setPeriodCount(FORMAT_DEFAULTS[fmt].periodCount);
+  }
+
   function togglePlayer(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -104,10 +125,10 @@ export function MatchSetup() {
         team_id: teamId,
         sport_id: sportId,
         opponent: opponent.trim() || null,
-        players_on_field: playersOnField,
+        players_on_field: isHockey ? RINK_SPECS[hockeyFormat].playersOnField : playersOnField,
         period_length_seconds: effectivePeriodSecs,
         period_count: periodCount,
-        formation: isSoccer11 ? formation : null,
+        formation: isSoccer11 ? formation : isHockey ? hockeyFormat : null,
         track_goals: trackGoals,
         selected_player_ids: Array.from(selectedIds),
       });
@@ -141,16 +162,50 @@ export function MatchSetup() {
         <Card>
           <CardContent className="space-y-4 py-4">
 
-            <div className="space-y-2">
-              <Label>Spillere på banen</Label>
-              <div className={cn("grid gap-2", colsForOptions(config.playersOnFieldOptions.length))}>
-                {config.playersOnFieldOptions.map((n) => (
-                  <OptionButton key={n} active={playersOnField === n} onClick={() => setPlayersOnField(n)}>
-                    {n}er
-                  </OptionButton>
-                ))}
+            {isHockey ? (
+              <div className="space-y-2">
+                <Label>Format</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {HOCKEY_FORMATS.map((fmt) => {
+                    const spec = RINK_SPECS[fmt];
+                    const active = hockeyFormat === fmt;
+                    return (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => selectHockeyFormat(fmt)}
+                        className={cn(
+                          "flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-colors",
+                          active
+                            ? "border-ink bg-ink/5"
+                            : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+                        )}
+                      >
+                        <HockeyRink format={fmt} className="pointer-events-none rounded-lg" />
+                        <div>
+                          <div className="text-sm font-semibold text-ink">{spec.label}</div>
+                          <div className="text-xs text-ink-muted">{spec.ageGroup}</div>
+                          <div className="mt-0.5 text-xs text-ink-muted">
+                            {spec.playersOnField} spillere · {FORMAT_DEFAULTS[fmt].periodCount}×{FORMAT_DEFAULTS[fmt].periodLengthSeconds / 60} min
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Spillere på banen</Label>
+                <div className={cn("grid gap-2", colsForOptions(config.playersOnFieldOptions.length))}>
+                  {config.playersOnFieldOptions.map((n) => (
+                    <OptionButton key={n} active={playersOnField === n} onClick={() => setPlayersOnField(n)}>
+                      {n}er
+                    </OptionButton>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Omgangslengde</Label>
