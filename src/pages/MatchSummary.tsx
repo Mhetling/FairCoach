@@ -219,7 +219,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
 
   return (
     <div ref={ref} style={{
-      position: "fixed", left: -9999, top: 0,
+      position: "absolute", left: -9999, top: 0,
       width: 500,
       background: C.bg,
       fontFamily: "Inter, system-ui, sans-serif",
@@ -235,7 +235,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: C.cream, lineHeight: 1.1,
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.cream, lineHeight: 1.3,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
               {match.opponent ? `vs ${match.opponent}` : "Kamp"}
             </div>
@@ -248,7 +248,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
             <div style={{ flexShrink: 0, textAlign: "center" as const,
               background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 20px" }}>
               <div style={{ fontSize: 42, fontWeight: 800, color: C.cream,
-                lineHeight: 1, letterSpacing: -2, fontVariantNumeric: "tabular-nums" as const }}>
+                lineHeight: 1.15, letterSpacing: -2, fontVariantNumeric: "tabular-nums" as const }}>
                 {scoreHome}–{scoreAway}
               </div>
             </div>
@@ -264,27 +264,24 @@ const ShareCard = forwardRef<HTMLDivElement, {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
           {sorted.map((mp) => {
             const fp = calcFP(mp.total_play_seconds, elapsed, nField, total);
-            const circleLabel = mp.player.jersey_number != null
-              ? `#${mp.player.jersey_number}`
-              : mp.player.name.charAt(0).toUpperCase();
             const firstName = mp.player.name.split(" ")[0];
+            const nameFontSize = firstName.length <= 4 ? 14 : firstName.length <= 6 ? 12 : firstName.length <= 8 ? 10 : 9;
             return (
               <div key={mp.player_id} style={{ display: "flex", flexDirection: "column" as const,
-                alignItems: "center", gap: 5 }}>
+                alignItems: "center", gap: 6 }}>
                 <div style={{
-                  width: 54, height: 54, borderRadius: "50%",
+                  width: 68, height: 68, borderRadius: "50%",
                   background: FP_HEX[fp],
                   color: FP_CIRCLE_TEXT[fp],
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: mp.player.jersey_number != null ? 14 : 18,
-                  fontWeight: 800,
+                  fontSize: nameFontSize,
+                  fontWeight: 700,
                   flexShrink: 0,
+                  textAlign: "center" as const,
+                  padding: "0 6px",
+                  boxSizing: "border-box" as const,
+                  lineHeight: 1.2,
                 }}>
-                  {circleLabel}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.text,
-                  maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis",
-                  whiteSpace: "nowrap" as const, textAlign: "center" as const }}>
                   {firstName}
                 </div>
                 <div style={{ fontSize: 11, fontFamily: "monospace", color: C.muted,

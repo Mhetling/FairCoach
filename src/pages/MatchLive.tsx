@@ -15,7 +15,6 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
-import { GripVertical } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +68,18 @@ const FP_DOT: Record<FPColor, string> = {
   green:  "bg-green-500",
   yellow: "bg-yellow-400",
   red:    "bg-red-500",
+};
+const FP_CIRCLE_BG: Record<FPColor, string> = {
+  blue:   "bg-blue-500",
+  green:  "bg-green-500",
+  yellow: "bg-yellow-400",
+  red:    "bg-red-500",
+};
+const FP_CIRCLE_TEXT: Record<FPColor, string> = {
+  blue:   "text-white",
+  green:  "text-white",
+  yellow: "text-ink",
+  red:    "text-white",
 };
 
 function calcFP(play: number, elapsed: number, onField: number, total: number): FPColor {
@@ -332,25 +343,21 @@ function BenchItem({ mp, playSeconds, fpColor }: {
   mp: RichMatchPlayer; playSeconds: number; fpColor: FPColor;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
+  const firstName = mp.player.name.split(" ")[0];
+  const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
   return (
-    <div ref={setNodeRef} {...attributes}
+    <div ref={setNodeRef} {...attributes} {...listeners}
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-ink/20 bg-cream-dark p-3 select-none",
+        "flex flex-col items-center gap-1.5 select-none touch-none cursor-grab active:cursor-grabbing",
         isDragging && "opacity-30",
       )}>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink font-display text-base font-bold text-cream">
-        {mp.player.jersey_number ?? mp.player.name.charAt(0).toUpperCase()}
+      <div className={cn(
+        "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1",
+        FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor], fontSize,
+      )}>
+        {firstName}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", FP_DOT[fpColor])} />
-          <div className="truncate text-base font-medium text-ink">{mp.player.name}</div>
-        </div>
-        <div className="text-sm text-ink-muted">{fmtTime(playSeconds)}</div>
-      </div>
-      <div {...listeners} className="touch-none cursor-grab active:cursor-grabbing p-2 -m-2">
-        <GripVertical className="h-5 w-5 shrink-0 text-ink-muted" />
-      </div>
+      <div className="text-xs font-mono text-ink-muted">{fmtTime(playSeconds)}</div>
     </div>
   );
 }
@@ -976,7 +983,7 @@ export function MatchLive() {
               Benk <span className="font-normal text-ink-muted">({benchPlayers.length})</span>
               <span className="ml-2 text-sm font-normal text-ink-muted">— dra opp på banen for å bytte</span>
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-4">
               {benchPlayers.map((mp) => (
                 <BenchItem key={mp.player_id} mp={mp}
                   playSeconds={getPlayTime(mp)} fpColor={getFP(mp)} />
@@ -987,16 +994,21 @@ export function MatchLive() {
 
         {/* Drag overlay */}
         <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
-          {activePlayer && (
-            <div className="flex flex-col items-center gap-px pointer-events-none scale-110">
-              <div className="flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 border-white bg-ink font-display text-sm font-bold text-cream shadow-2xl">
-                {activePlayer.player.jersey_number ?? activePlayer.player.name.charAt(0).toUpperCase()}
+          {activePlayer && (() => {
+            const firstName = activePlayer.player.name.split(" ")[0];
+            const fp = getFP(activePlayer);
+            const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
+            return (
+              <div className="flex flex-col items-center gap-1.5 pointer-events-none scale-110">
+                <div className={cn(
+                  "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1 shadow-2xl",
+                  FP_CIRCLE_BG[fp], FP_CIRCLE_TEXT[fp], fontSize,
+                )}>
+                  {firstName}
+                </div>
               </div>
-              <span className="max-w-[46px] truncate text-center text-[10px] font-semibold text-white drop-shadow-lg">
-                {activePlayer.player.name.split(" ")[0]}
-              </span>
-            </div>
-          )}
+            );
+          })()}
         </DragOverlay>
 
         {/* Goal dialog */}
