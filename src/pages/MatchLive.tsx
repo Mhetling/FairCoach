@@ -330,6 +330,59 @@ function BenchItem({ mp, playSeconds, fpColor }: {
   );
 }
 
+// ─── Substitution recommendation ─────────────────────────────────────────────
+
+function SubRecommendation({ fieldPlayers, benchPlayers, getPlayTime, getFP }: {
+  fieldPlayers: RichMatchPlayer[];
+  benchPlayers: RichMatchPlayer[];
+  getPlayTime: (mp: RichMatchPlayer) => number;
+  getFP: (mp: RichMatchPlayer) => FPColor;
+}) {
+  // Exclude GK from sub-out candidates
+  const subOut = [...fieldPlayers]
+    .filter((mp) => mp.player.position !== "GK")
+    .sort((a, b) => getPlayTime(b) - getPlayTime(a))[0];
+  const subIn = benchPlayers[0]; // bench is pre-sorted ascending by play time
+
+  if (!subOut || !subIn) return null;
+
+  function Bubble({ mp, label }: { mp: RichMatchPlayer; label: string }) {
+    const name = mp.player.name.split(" ")[0];
+    const fp = getFP(mp);
+    const fs = name.length <= 4 ? "text-sm" : name.length <= 6 ? "text-xs" : "text-[10px]";
+    return (
+      <div className="flex flex-col items-center gap-0.5 min-w-[52px]">
+        <div className={cn(
+          "flex h-12 w-12 items-center justify-center rounded-full font-bold px-1 leading-tight",
+          FP_CIRCLE_BG[fp], FP_CIRCLE_TEXT[fp], fs,
+        )}>
+          {name}
+        </div>
+        <span className="text-[10px] font-mono text-ink-muted tabular-nums">{fmtTime(getPlayTime(mp))}</span>
+        <span className="text-[10px] text-ink-muted">{label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 rounded-xl border border-ink/10 bg-cream-dark px-4 py-3">
+      <p className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+        Anbefalt bytte
+      </p>
+      <div className="flex items-center gap-3">
+        <Bubble mp={subOut} label="ut" />
+        <span className="text-2xl text-ink/20 font-light select-none">→</span>
+        <Bubble mp={subIn} label="inn" />
+        <p className="ml-auto text-xs text-ink-muted text-right leading-relaxed">
+          <span className="font-medium text-ink">{subOut.player.name.split(" ")[0]}</span> har spilt mest
+          <br />
+          <span className="font-medium text-ink">{subIn.player.name.split(" ")[0]}</span> minst
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Goal dialog ──────────────────────────────────────────────────────────────
 
 function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCancel }: {
@@ -971,6 +1024,16 @@ export function MatchLive() {
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />Litt under</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500" />Mye under</span>
         </div>
+
+        {/* Substitution recommendation */}
+        {benchPlayers.length > 0 && match.status !== "finished" && match.status !== "pending" && (
+          <SubRecommendation
+            fieldPlayers={fieldPlayers}
+            benchPlayers={benchPlayers}
+            getPlayTime={getPlayTime}
+            getFP={getFP}
+          />
+        )}
 
         {/* Bench */}
         {benchPlayers.length > 0 && (
