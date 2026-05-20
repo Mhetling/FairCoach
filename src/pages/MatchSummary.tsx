@@ -175,10 +175,6 @@ function SubTimeline({ events }: { events: RichMatchEvent[] }) {
 
 // ─── Share card ───────────────────────────────────────────────────────────────
 
-const FP_CIRCLE_TEXT: Record<FPColor, string> = {
-  blue: "#ffffff", green: "#ffffff", yellow: "#171717", red: "#ffffff",
-};
-
 const ShareCard = forwardRef<HTMLDivElement, {
   match: Match;
   players: RichMatchPlayer[];
@@ -188,6 +184,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
   notes: string;
 }>(({ match, players, events, scoreHome, scoreAway, notes }, ref) => {
   const sorted = [...players].sort((a, b) => b.total_play_seconds - a.total_play_seconds);
+  const maxSeconds = sorted[0]?.total_play_seconds ?? 0;
   const elapsed = match.elapsed_seconds;
   const nField = match.players_on_field;
   const total = players.length;
@@ -235,8 +232,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: C.cream, lineHeight: 1.3,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.cream, lineHeight: 1.3 }}>
               {match.opponent ? `vs ${match.opponent}` : "Kamp"}
             </div>
             <div style={{ fontSize: 11, color: "rgba(250,246,238,0.4)", marginTop: 6 }}>
@@ -259,48 +255,47 @@ const ShareCard = forwardRef<HTMLDivElement, {
       {/* ── Body ── */}
       <div style={{ padding: "22px 24px 26px" }}>
 
-        {/* Spilletid — chip grid */}
+        {/* Spilletid — list */}
         {sectionLabel("Spilletid")}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
           {sorted.map((mp) => {
             const fp = calcFP(mp.total_play_seconds, elapsed, nField, total);
-            const firstName = mp.player.name.split(" ")[0];
-            const nameFontSize = firstName.length <= 4 ? 14 : firstName.length <= 6 ? 12 : firstName.length <= 8 ? 10 : 9;
+            const pct = maxSeconds > 0 ? Math.round((mp.total_play_seconds / maxSeconds) * 100) : 0;
+            const name = mp.player.jersey_number != null
+              ? `#${mp.player.jersey_number} ${mp.player.name}`
+              : mp.player.name;
             return (
-              <div key={mp.player_id} style={{ display: "flex", flexDirection: "column" as const,
-                alignItems: "center", gap: 6 }}>
-                <div style={{
-                  width: 68, height: 68, borderRadius: "50%",
-                  background: FP_HEX[fp],
-                  color: FP_CIRCLE_TEXT[fp],
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: nameFontSize,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  textAlign: "center" as const,
-                  padding: "0 6px",
-                  boxSizing: "border-box" as const,
-                  lineHeight: 1.2,
-                }}>
-                  {firstName}
-                </div>
-                <div style={{ fontSize: 11, fontFamily: "monospace", color: C.muted,
-                  textAlign: "center" as const }}>
-                  {fmtTime(mp.total_play_seconds)}
-                </div>
-                {mp.player.position === "GK" && (
-                  <div style={{ fontSize: 9, color: C.label, textAlign: "center" as const,
-                    letterSpacing: 0.5, marginTop: -2 }}>
-                    keeper
+              <div key={mp.player_id}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <div style={{ width: 9, height: 9, borderRadius: "50%",
+                    background: FP_HEX[fp], flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.text,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                    {name}
+                    {mp.player.position === "GK" && (
+                      <span style={{ fontSize: 10, color: C.muted, marginLeft: 5 }}>(keeper)</span>
+                    )}
                   </div>
-                )}
+                  <div style={{ flexShrink: 0, fontSize: 11, fontFamily: "monospace",
+                    color: C.muted, minWidth: 42, textAlign: "right" as const }}>
+                    {fmtTime(mp.total_play_seconds)}
+                  </div>
+                  <div style={{ flexShrink: 0, fontSize: 10, color: C.label,
+                    minWidth: 62, textAlign: "right" as const }}>
+                    {FP_LABEL[fp]}
+                  </div>
+                </div>
+                <div style={{ height: 4, background: C.dim, borderRadius: 2 }}>
+                  <div style={{ height: "100%", background: FP_HEX[fp], borderRadius: 2,
+                    width: `${pct}%`, opacity: 0.65 }} />
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* FP legend */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" as const }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" as const, marginTop: 14 }}>
           {(["green", "blue", "yellow", "red"] as FPColor[]).map((c) => (
             <div key={c} style={{ display: "flex", alignItems: "center", gap: 4,
               fontSize: 10, color: C.muted }}>
