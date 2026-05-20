@@ -554,6 +554,7 @@ export function MatchLive() {
   const [formation, setFormation] = useState<string | null>(null);
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
 
   const cameOnAt = useRef<Record<string, number>>({});
   const periodStartAt = useRef(0);
@@ -857,7 +858,14 @@ export function MatchLive() {
   return (
     <DndContext sensors={sensors} collisionDetection={rectIntersection}
       onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
-      <AppShell title={match.opponent ? `vs ${match.opponent}` : "Kamp"} showBack>
+      <AppShell title={match.opponent ? `vs ${match.opponent}` : "Kamp"} showBack
+        rightSlot={match.status !== "finished" ? (
+          <div className="flex flex-col items-end leading-none">
+            <span className="font-mono text-lg font-bold tabular-nums">{fmtTime(periodElapsed)}</span>
+            <span className="text-[10px] text-ink-muted">{match.current_period}. omgang</span>
+          </div>
+        ) : undefined}
+      >
 
         {/* Clock bar */}
         <div className="mb-3 flex items-center justify-between rounded-xl bg-ink px-4 py-3 text-cream">
@@ -881,12 +889,17 @@ export function MatchLive() {
                 <Button variant="ghost" size="sm"
                   className="border border-cream/30 text-cream hover:bg-cream/10"
                   onClick={handleStart}>
-                  {match.status === "pending" ? "Start" : "Fortsett"}
+                  {match.status === "pending"
+                    ? "Start"
+                    : periodElapsed === 0
+                      ? `Start omgang ${match.current_period}`
+                      : "Fortsett"}
                 </Button>
               )}
               <Button variant="ghost" size="sm"
                 className="border border-cream/30 text-cream hover:bg-cream/10"
-                onClick={handleEndPeriod} disabled={endPeriod.isPending}>
+                onClick={isLastPeriod ? () => setConfirmEndOpen(true) : handleEndPeriod}
+                disabled={endPeriod.isPending}>
                 {isLastPeriod ? "Avslutt kamp" : "Neste omgang →"}
               </Button>
             </div>
@@ -1027,6 +1040,20 @@ export function MatchLive() {
           onSelect={handleFormationChange}
           onClose={() => setFormationDialogOpen(false)}
         />
+
+        {/* Confirm end match dialog */}
+        <Dialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Avslutt kamp?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-ink-muted">Kampen avsluttes og spilletid lagres. Dette kan ikke angres.</p>
+            <div className="mt-4 flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setConfirmEndOpen(false)}>Avbryt</Button>
+              <Button onClick={() => { setConfirmEndOpen(false); handleEndPeriod(); }}>Avslutt kamp</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </AppShell>
     </DndContext>
