@@ -34,13 +34,17 @@ import {
 } from "@/hooks/useMatch";
 import { useTeam } from "@/hooks/useTeams";
 import {
-  PITCH_SPECS, HANDBALL_COURT_SPEC, HOCKEY_RINK_SPEC, BASKETBALL_COURT_SPEC,
-  type PitchSpec, type HandballCourtSpec, type HockeyRinkSpec, type BasketballCourtSpec,
+  PITCH_SPECS, HANDBALL_COURT_SPEC, BASKETBALL_COURT_SPEC,
+  type PitchSpec, type HandballCourtSpec, type BasketballCourtSpec,
 } from "@/lib/pitchSpecs";
 import {
   ELEVEN_FORMATIONS, getFormationPositions, getHandballPositions,
-  getHockeyPositions, getBasketballPositions,
+  getBasketballPositions,
 } from "@/lib/formations";
+import {
+  RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
+} from "@/lib/hockeyRinks";
+import { HockeyRinkContent } from "@/components/HockeyRink";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -167,50 +171,6 @@ function HandballCourtMarkings({ spec }: { spec: HandballCourtSpec }) {
 
 // ─── Hockey rink markings ─────────────────────────────────────────────────────
 
-function HockeyRinkMarkings({ spec }: { spec: HockeyRinkSpec }) {
-  const { width: W, length: L, goalWidth: G, goalLineDistance: GL,
-    blueLineDistance: BL, cornerRadius: CR, centerCircleRadius: CCR, creaseRadius: CR2 } = spec;
-  const cx = W / 2;
-  const sw = W / 60;
-  const line    = { fill: "none" as const, stroke: "white", strokeOpacity: 0.45, strokeWidth: sw };
-  const redLine = { fill: "none" as const, stroke: "#ff4444", strokeOpacity: 0.7, strokeWidth: sw * 2 };
-  const blueLine = { fill: "none" as const, stroke: "#4488ff", strokeOpacity: 0.7, strokeWidth: sw * 1.5 };
-  const goalLine = { fill: "none" as const, stroke: "white", strokeOpacity: 0.9, strokeWidth: sw * 3 };
-  const dot = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
-
-  // D-shaped crease path opening away from end line
-  function creasePath(y0: number, dir: 1 | -1) {
-    const yc = y0 + CR2 * dir;
-    const lx = cx - CR2, rx = cx + CR2;
-    const sweep = dir === 1 ? 0 : 1;
-    return `M ${lx},${y0} A ${CR2},${CR2} 0 0,${sweep} ${rx},${y0} L ${rx},${yc} A ${CR2},${CR2} 0 0,${sweep} ${lx},${yc} Z`;
-  }
-
-  return (
-    <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
-      viewBox={`0 ${L / 3} ${W} ${L * 2 / 3}`} preserveAspectRatio="none">
-      {/* Outer rink with rounded corners */}
-      <rect x={0} y={0} width={W} height={L} rx={CR} {...line} />
-      {/* Centre red line */}
-      <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...redLine} />
-      {/* Blue zone lines */}
-      <line x1={0} y1={BL} x2={W} y2={BL} {...blueLine} />
-      <line x1={0} y1={L - BL} x2={W} y2={L - BL} {...blueLine} />
-      {/* Goal lines */}
-      <line x1={0} y1={GL} x2={W} y2={GL} {...line} />
-      <line x1={0} y1={L - GL} x2={W} y2={L - GL} {...line} />
-      {/* Goal highlights */}
-      <line x1={(W - G) / 2} y1={GL} x2={(W + G) / 2} y2={GL} {...goalLine} />
-      <line x1={(W - G) / 2} y1={L - GL} x2={(W + G) / 2} y2={L - GL} {...goalLine} />
-      {/* Creases */}
-      <path d={creasePath(GL, 1)} fill="white" fillOpacity={0.1} stroke="white" strokeOpacity={0.4} strokeWidth={sw} />
-      <path d={creasePath(L - GL, -1)} fill="white" fillOpacity={0.1} stroke="white" strokeOpacity={0.4} strokeWidth={sw} />
-      {/* Centre face-off circle and dot */}
-      <circle cx={cx} cy={L / 2} r={CCR} {...line} />
-      <circle cx={cx} cy={L / 2} r={sw * 1.4} {...dot} />
-    </svg>
-  );
-}
 
 // ─── Basketball court markings ────────────────────────────────────────────────
 
@@ -289,10 +249,14 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
 
 // ─── Pitch drop zone ──────────────────────────────────────────────────────────
 
-function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700" }: {
-  children: React.ReactNode; anyDragging: boolean; spec: { width: number; length: number }; bgColor?: string;
+function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", fullLength = false }: {
+  children: React.ReactNode; anyDragging: boolean; spec: { width: number; length: number };
+  bgColor?: string; fullLength?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: "pitch" });
+  const ar = fullLength
+    ? `${spec.width} / ${spec.length}`
+    : `${spec.width} / ${spec.length * 2 / 3}`;
   return (
     <div id="pitch-container" ref={setNodeRef}
       className={cn(
@@ -300,7 +264,7 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700" }: {
         bgColor,
         isOver && anyDragging && "ring-2 ring-yellow-400 ring-offset-1",
       )}
-      style={{ aspectRatio: `${spec.width} / ${spec.length * 2 / 3}` }}>
+      style={{ aspectRatio: ar }}>
       {children}
     </div>
   );
@@ -308,15 +272,21 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700" }: {
 
 // ─── Field token ──────────────────────────────────────────────────────────────
 
-function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap }: {
+function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
+  positionLabel?: string;
 }) {
   const firstName = mp.player.name.split(" ")[0];
   const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
   return (
     <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
+      {positionLabel && (
+        <span className="rounded bg-black/40 px-1 py-px text-[8px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm">
+          {positionLabel}
+        </span>
+      )}
       <div className={cn(
         "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md",
         fontSize,
@@ -700,16 +670,23 @@ export function MatchLive() {
   const isHockey     = match.sport_id === "hockey";
   const isBasketball = match.sport_id === "basketball";
 
-  const positions = (
-    isHandball   ? getHandballPositions(match.players_on_field) :
-    isHockey     ? getHockeyPositions(match.players_on_field) :
-    isBasketball ? getBasketballPositions(match.players_on_field) :
-    getFormationPositions(match.players_on_field, formation)
-  ).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
+  // Hockey: utled format fra match.formation (bakoverkompatibel)
+  const hockeyFormat: HockeyFormat = isHockey
+    ? resolveHockeyFormat(match.formation, match.players_on_field)
+    : "5v5-full";
+  const hockeyRinkPositions = RINK_POSITIONS[hockeyFormat];
+
+  const positions = isHockey
+    ? hockeyRinkPositions.map(p => ({ x: p.x, y: p.y }))
+    : (
+        isHandball   ? getHandballPositions(match.players_on_field) :
+        isBasketball ? getBasketballPositions(match.players_on_field) :
+        getFormationPositions(match.players_on_field, formation)
+      ).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
 
   const pitchSpec =
     isHandball   ? HANDBALL_COURT_SPEC :
-    isHockey     ? HOCKEY_RINK_SPEC :
+    isHockey     ? RINK_SPECS[hockeyFormat] :
     isBasketball ? BASKETBALL_COURT_SPEC :
     (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
 
@@ -947,24 +924,27 @@ export function MatchLive() {
             </button>
           )}
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
+            fullLength={isHockey}
             bgColor={
               isHandball   ? "bg-[#C8A45A]" :
-              isHockey     ? "bg-[#9ec8e0]" :
+              isHockey     ? "bg-[#E8F4FB]" :
               isBasketball ? "bg-[#c8944a]" :
               "bg-green-700"
             }>
             {isHandball   ? <HandballCourtMarkings spec={HANDBALL_COURT_SPEC} /> :
-             isHockey     ? <HockeyRinkMarkings spec={HOCKEY_RINK_SPEC} /> :
+             isHockey     ? <HockeyRinkContent format={hockeyFormat} /> :
              isBasketball ? <BasketballCourtMarkings spec={BASKETBALL_COURT_SPEC} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }
             {fieldPlayers.map((mp, i) => {
               const posIdx = positionMap.current[mp.player_id] ?? i;
+              const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
               return (
                 <FieldToken key={mp.player_id} mp={mp}
                   pos={positions[posIdx] ?? { x: 50, y: 50 }}
                   playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
-                  isPendingSwap={mp.player_id === pendingSwapId} />
+                  isPendingSwap={mp.player_id === pendingSwapId}
+                  positionLabel={posLabel} />
               );
             })}
             {activeId && (
