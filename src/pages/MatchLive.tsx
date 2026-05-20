@@ -279,10 +279,10 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", full
 // ─── Field token ──────────────────────────────────────────────────────────────
 
 function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel, isGK,
-  onLongPressStart, onLongPressEnd }: {
+  subOutRank, onLongPressStart, onLongPressEnd }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
-  positionLabel?: string; isGK?: boolean;
+  positionLabel?: string; isGK?: boolean; subOutRank?: number;
   onLongPressStart?: () => void; onLongPressEnd?: () => void;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
@@ -322,16 +322,23 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
           {positionLabel ?? "MV"}
         </span>
       )}
-      <div className={cn(
-        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md pointer-events-none",
-        fontSize,
-        isPendingSwap
-          ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
-          : isGK
-          ? "border-white/50 bg-slate-400 text-white"
-          : cn("border-white", FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor]),
-      )}>
-        {firstName}
+      <div className="relative pointer-events-none">
+        <div className={cn(
+          "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md",
+          fontSize,
+          isPendingSwap
+            ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
+            : isGK
+            ? "border-white/50 bg-slate-400 text-white"
+            : cn("border-white", FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor]),
+        )}>
+          {firstName}
+        </div>
+        {subOutRank !== undefined && (
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-[9px] font-bold text-ink shadow">
+            {subOutRank}
+          </span>
+        )}
       </div>
       <span className="text-[10px] font-mono text-white/90 drop-shadow mt-0.5 pointer-events-none">
         {fmtTime(playSeconds)}
@@ -342,8 +349,8 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
 
 // ─── Bench item ───────────────────────────────────────────────────────────────
 
-function BenchItem({ mp, playSeconds, fpColor, onLongPressStart, onLongPressEnd }: {
-  mp: RichMatchPlayer; playSeconds: number; fpColor: FPColor;
+function BenchItem({ mp, playSeconds, fpColor, priority, onLongPressStart, onLongPressEnd }: {
+  mp: RichMatchPlayer; playSeconds: number; fpColor: FPColor; priority?: number;
   onLongPressStart?: () => void; onLongPressEnd?: () => void;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
@@ -372,11 +379,18 @@ function BenchItem({ mp, playSeconds, fpColor, onLongPressStart, onLongPressEnd 
         "flex flex-col items-center gap-1.5 select-none touch-none cursor-grab active:cursor-grabbing",
         isDragging && "opacity-30",
       )}>
-      <div className={cn(
-        "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1 pointer-events-none",
-        FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor], fontSize,
-      )}>
-        {firstName}
+      <div className="relative pointer-events-none">
+        <div className={cn(
+          "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1",
+          FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor], fontSize,
+        )}>
+          {firstName}
+        </div>
+        {priority !== undefined && (
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-cream shadow">
+            {priority}
+          </span>
+        )}
       </div>
       <div className="text-xs font-mono text-ink-muted pointer-events-none">{fmtTime(playSeconds)}</div>
     </div>
@@ -530,59 +544,6 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// ─── Substitution recommendation ─────────────────────────────────────────────
-
-function SubRecommendation({ fieldPlayers, benchPlayers, getPlayTime, getFP }: {
-  fieldPlayers: RichMatchPlayer[];
-  benchPlayers: RichMatchPlayer[];
-  getPlayTime: (mp: RichMatchPlayer) => number;
-  getFP: (mp: RichMatchPlayer) => FPColor;
-}) {
-  // Exclude GK from sub-out candidates
-  const subOut = [...fieldPlayers]
-    .filter((mp) => mp.player.position !== "GK")
-    .sort((a, b) => getPlayTime(b) - getPlayTime(a))[0];
-  const subIn = benchPlayers[0]; // bench is pre-sorted ascending by play time
-
-  if (!subOut || !subIn) return null;
-
-  function Bubble({ mp, label }: { mp: RichMatchPlayer; label: string }) {
-    const name = mp.player.name.split(" ")[0];
-    const fp = getFP(mp);
-    const fs = name.length <= 4 ? "text-sm" : name.length <= 6 ? "text-xs" : "text-[10px]";
-    return (
-      <div className="flex flex-col items-center gap-0.5 min-w-[52px]">
-        <div className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-full font-bold px-1 leading-tight",
-          FP_CIRCLE_BG[fp], FP_CIRCLE_TEXT[fp], fs,
-        )}>
-          {name}
-        </div>
-        <span className="text-[10px] font-mono text-ink-muted tabular-nums">{fmtTime(getPlayTime(mp))}</span>
-        <span className="text-[10px] text-ink-muted">{label}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-3 rounded-xl border border-ink/10 bg-cream-dark px-4 py-3">
-      <p className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-ink-muted">
-        Anbefalt bytte
-      </p>
-      <div className="flex items-center gap-3">
-        <Bubble mp={subOut} label="ut" />
-        <span className="text-2xl text-ink/20 font-light select-none">→</span>
-        <Bubble mp={subIn} label="inn" />
-        <p className="ml-auto text-xs text-ink-muted text-right leading-relaxed">
-          <span className="font-medium text-ink">{subOut.player.name.split(" ")[0]}</span> har spilt mest
-          <br />
-          <span className="font-medium text-ink">{subIn.player.name.split(" ")[0]}</span> minst
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -1258,21 +1219,30 @@ export function MatchLive() {
              isBasketball ? <BasketballCourtMarkings spec={BASKETBALL_COURT_SPEC} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }
-            {fieldPlayers.map((mp, i) => {
-              const posIdx = positionMap.current[mp.player_id] ?? i;
-              const inGKSlot = isInGKSlot(mp);
-              const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
-              return (
-                <FieldToken key={mp.player_id} mp={mp}
-                  pos={positions[posIdx] ?? { x: 50, y: 50 }}
-                  playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
-                  isPendingSwap={mp.player_id === pendingSwapId}
-                  positionLabel={posLabel}
-                  isGK={inGKSlot}
-                  onLongPressStart={() => startLongPress(mp.player_id)}
-                  onLongPressEnd={cancelLongPress} />
+            {(() => {
+              const subOutRankMap = new Map(
+                [...fieldPlayers]
+                  .filter((mp) => !isInGKSlot(mp))
+                  .sort((a, b) => getPlayTime(b) - getPlayTime(a))
+                  .map((mp, i) => [mp.player_id, i + 1]),
               );
-            })}
+              return fieldPlayers.map((mp, i) => {
+                const posIdx = positionMap.current[mp.player_id] ?? i;
+                const inGKSlot = isInGKSlot(mp);
+                const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
+                return (
+                  <FieldToken key={mp.player_id} mp={mp}
+                    pos={positions[posIdx] ?? { x: 50, y: 50 }}
+                    playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
+                    isPendingSwap={mp.player_id === pendingSwapId}
+                    positionLabel={posLabel}
+                    isGK={inGKSlot}
+                    subOutRank={subOutRankMap.get(mp.player_id)}
+                    onLongPressStart={() => startLongPress(mp.player_id)}
+                    onLongPressEnd={cancelLongPress} />
+                );
+              });
+            })()}
             {activeId && (
               <div className="absolute bottom-2 left-0 right-0 text-center text-xs font-medium text-white/80 pointer-events-none">
                 {pendingSwapId
@@ -1294,16 +1264,6 @@ export function MatchLive() {
           )}
         </div>
 
-        {/* Substitution recommendation */}
-        {benchPlayers.length > 0 && match.status !== "finished" && match.status !== "pending" && (
-          <SubRecommendation
-            fieldPlayers={fieldPlayers}
-            benchPlayers={benchPlayers}
-            getPlayTime={getPlayTime}
-            getFP={getFP}
-          />
-        )}
-
         {/* Bench */}
         {benchPlayers.length > 0 && (
           <div>
@@ -1312,9 +1272,10 @@ export function MatchLive() {
               <span className="ml-2 text-sm font-normal text-ink-muted">— dra opp på banen for å bytte</span>
             </p>
             <div className="flex flex-wrap gap-4">
-              {benchPlayers.map((mp) => (
+              {benchPlayers.map((mp, i) => (
                 <BenchItem key={mp.player_id} mp={mp}
                   playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
+                  priority={i + 1}
                   onLongPressStart={() => startLongPress(mp.player_id)}
                   onLongPressEnd={cancelLongPress} />
               ))}
