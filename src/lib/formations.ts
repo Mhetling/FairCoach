@@ -122,20 +122,23 @@ export function getHandballPositions(playersOnField: number): { x: number; y: nu
 // GK at own goal; field players on curved arc (same parabola formula as handball).
 const HOCKEY_POSITIONS: Record<number, { x: number; y: number }[]> = {
   3: [
-    { x: 50, y: 95 },                              // GK
+    { x: 50, y: 88 },                              // GK (foran mållinjen)
     { x: 25, y: 62 }, { x: 75, y: 62 },
   ],
   4: [
-    { x: 50, y: 95 },
-    { x: 20, y: 64 }, { x: 50, y: 58 }, { x: 80, y: 64 },
+    { x: 50, y: 88 },
+    { x: 20, y: 70 }, { x: 50, y: 58 }, { x: 80, y: 70 },
   ],
   5: [
-    { x: 50, y: 95 },
-    { x: 10, y: 69 }, { x: 37, y: 59 }, { x: 63, y: 59 }, { x: 90, y: 69 },
+    { x: 50, y: 88 },
+    { x: 15, y: 72 }, { x: 85, y: 72 },           // 2 backer
+    { x: 35, y: 52 }, { x: 65, y: 52 },           // 2 forward
   ],
   6: [
-    { x: 50, y: 95 },
-    { x: 10, y: 69 }, { x: 30, y: 61 }, { x: 50, y: 58 }, { x: 70, y: 61 }, { x: 90, y: 69 },
+    { x: 50, y: 88 },                              // GK — 2-1-2
+    { x: 25, y: 74 }, { x: 75, y: 74 },           // 2 backer
+    { x: 50, y: 55 },                              // center
+    { x: 25, y: 36 }, { x: 75, y: 36 },           // 2 forward
   ],
 };
 
