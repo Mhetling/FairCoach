@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Match, MatchEvent, MatchPlayer } from "@/types/database";
+import type { Match, MatchEvent, MatchPlayer, PlayerMeta } from "@/types/database";
 
 export type RichMatchPlayer = MatchPlayer & {
   player: { id: string; name: string; jersey_number: number | null; position: string | null };
@@ -167,6 +167,22 @@ export function useUpdatePlayerPlayTime(matchId: string | undefined) {
       const { error } = await supabase
         .from("match_players")
         .update({ total_play_seconds: args.totalPlaySeconds })
+        .eq("match_id", matchId)
+        .eq("player_id", args.playerId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
+export function useUpdatePlayerMeta(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { playerId: string; meta: PlayerMeta | null }) => {
+      if (!matchId) return;
+      const { error } = await supabase
+        .from("match_players")
+        .update({ meta: args.meta })
         .eq("match_id", matchId)
         .eq("player_id", args.playerId);
       if (error) throw error;

@@ -34,6 +34,7 @@ type FPColor = "blue" | "green" | "yellow" | "red";
 const FP_DOT: Record<FPColor, string> = {
   blue: "bg-blue-500", green: "bg-green-500", yellow: "bg-yellow-400", red: "bg-red-500",
 };
+const ZONE_LABEL: Record<string, string> = { back: "Back", midt: "Midt", angrep: "Angrep", keeper: "Keeper" };
 const FP_HEX: Record<FPColor, string> = {
   blue: "#3b82f6", green: "#22c55e", yellow: "#facc15", red: "#ef4444",
 };
@@ -264,6 +265,13 @@ const ShareCard = forwardRef<HTMLDivElement, {
             const name = mp.player.jersey_number != null
               ? `#${mp.player.jersey_number} ${mp.player.name}`
               : mp.player.name;
+            const meta = mp.meta;
+            const metaChips = [
+              ...(meta?.note ? [{ label: meta.note, bg: "#fef3c7", color: "#92400e" }] : []),
+              ...(meta?.zones?.map((z) => ({
+                label: ZONE_LABEL[z] ?? z, bg: "#dbeafe", color: "#1e40af",
+              })) ?? []),
+            ];
             return (
               <div key={mp.player_id}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
@@ -289,6 +297,17 @@ const ShareCard = forwardRef<HTMLDivElement, {
                   <div style={{ height: "100%", background: FP_HEX[fp], borderRadius: 2,
                     width: `${pct}%`, opacity: 0.65 }} />
                 </div>
+                {metaChips.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const,
+                    marginTop: 4, paddingLeft: 17 }}>
+                    {metaChips.map((chip) => (
+                      <div key={chip.label} style={{ fontSize: 9, background: chip.bg, color: chip.color,
+                        borderRadius: 3, padding: "1px 5px", fontWeight: 600 }}>
+                        {chip.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -526,6 +545,9 @@ export function MatchSummary() {
             <div className="flex flex-col gap-3">
               {sorted.map((mp) => {
                 const fp = calcFP(mp.total_play_seconds, elapsed, onField, total);
+                const meta = mp.meta;
+                const hasNote = !!meta?.note;
+                const hasZones = (meta?.zones?.length ?? 0) > 0;
                 return (
                   <div key={mp.player_id}>
                     <div className="mb-1 flex items-center gap-2">
@@ -538,6 +560,20 @@ export function MatchSummary() {
                       <span className="w-16 shrink-0 text-right text-xs text-ink/40">{FP_LABEL[fp]}</span>
                     </div>
                     <PlayBar seconds={mp.total_play_seconds} max={maxSeconds} />
+                    {(hasNote || hasZones) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1 pl-4">
+                        {hasNote && (
+                          <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800">
+                            {meta!.note}
+                          </span>
+                        )}
+                        {meta?.zones?.map((z) => (
+                          <span key={z} className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-800">
+                            {ZONE_LABEL[z] ?? z}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

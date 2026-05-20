@@ -54,6 +54,8 @@ export type Match = {
   created_at: string;
 };
 
+export type PlayerMeta = { note?: string; zones?: string[] };
+
 export type MatchPlayer = {
   match_id: string;
   player_id: string;
@@ -61,6 +63,7 @@ export type MatchPlayer = {
   on_field: boolean;
   current_position: string | null;
   total_play_seconds: number;
+  meta: PlayerMeta | null;
 };
 
 export type MatchEventType =
@@ -157,6 +160,7 @@ export type Database = {
           on_field?: boolean;
           current_position?: string | null;
           total_play_seconds?: number;
+          meta?: PlayerMeta | null;
         };
         Update: Partial<MatchPlayer>;
         Relationships: [];

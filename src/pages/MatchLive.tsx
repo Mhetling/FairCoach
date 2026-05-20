@@ -31,6 +31,7 @@ import {
   useMatchEvents,
   useSubstitute,
   useUpdateMatch,
+  useUpdatePlayerMeta,
   useUpdatePlayerPlayTime,
   type RichMatchEvent,
   type RichMatchPlayer,
@@ -384,14 +385,23 @@ function BenchItem({ mp, playSeconds, fpColor, onLongPressStart, onLongPressEnd 
 
 // ─── Player detail / play-time edit dialog ────────────────────────────────────
 
+const NOTE_PRESETS = ["Skadet", "Ville ikke spille", "Foreldreavtale", "Utvist"];
+const ZONE_OPTIONS = [
+  { value: "back", label: "Back" },
+  { value: "midt", label: "Midt" },
+  { value: "angrep", label: "Angrep" },
+];
+
 function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }: {
   mp: RichMatchPlayer;
   currentPlaySeconds: number;
   events: RichMatchEvent[];
-  onSave: (newSeconds: number) => Promise<void>;
+  onSave: (newSeconds: number, meta: { note?: string; zones?: string[] } | null) => Promise<void>;
   onClose: () => void;
 }) {
   const [editSeconds, setEditSeconds] = useState(currentPlaySeconds);
+  const [note, setNote] = useState<string | null>(mp.meta?.note ?? null);
+  const [zones, setZones] = useState<string[]>(mp.meta?.zones ?? []);
   const [saving, setSaving] = useState(false);
 
   const playerEvents = events
@@ -406,9 +416,16 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
     return `${min}' — ${e.event_type}`;
   }
 
+  function toggleZone(z: string) {
+    setZones((prev) => prev.includes(z) ? prev.filter((x) => x !== z) : [...prev, z]);
+  }
+
   async function handleSave() {
     setSaving(true);
-    try { await onSave(editSeconds); } finally { setSaving(false); }
+    const meta = (note || zones.length > 0)
+      ? { ...(note ? { note } : {}), ...(zones.length > 0 ? { zones } : {}) }
+      : null;
+    try { await onSave(editSeconds, meta); } finally { setSaving(false); }
   }
 
   return (
@@ -436,6 +453,51 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }:
             ))}
           </div>
         )}
+
+        {/* Status note */}
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Status</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setNote(null)}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                note === null
+                  ? "border-ink bg-ink text-cream"
+                  : "border-ink/20 bg-cream-dark text-ink-muted hover:bg-ink/5",
+              )}>
+              Ingen
+            </button>
+            {NOTE_PRESETS.map((n) => (
+              <button key={n} type="button" onClick={() => setNote(note === n ? null : n)}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                  note === n
+                    ? "border-amber-600 bg-amber-100 text-amber-900"
+                    : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
+                )}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Zones played */}
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Posisjoner spilt</p>
+          <div className="flex gap-2">
+            {ZONE_OPTIONS.map((z) => (
+              <button key={z.value} type="button" onClick={() => toggleZone(z.value)}
+                className={cn(
+                  "flex-1 rounded-lg border py-2 text-sm font-medium transition-colors",
+                  zones.includes(z.value)
+                    ? "border-blue-600 bg-blue-100 text-blue-900"
+                    : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
+                )}>
+                {z.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Play time editor */}
         <div className="space-y-2 pt-1">
@@ -712,6 +774,7 @@ export function MatchLive() {
   const logGoal = useLogGoal(matchId);
   const { data: matchEvents = [] } = useMatchEvents(matchId);
   const updatePlayerPlayTime = useUpdatePlayerPlayTime(matchId);
+  const updatePlayerMeta = useUpdatePlayerMeta(matchId);
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -1309,15 +1372,14 @@ export function MatchLive() {
               currentPlaySeconds={getPlayTime(mp)}
               events={matchEvents}
               onClose={() => setPlayerDetailId(null)}
-              onSave={async (newSeconds) => {
+              onSave={async (newSeconds, meta) => {
                 if (mp.on_field) {
-                  // Adjust cameOnAt so future period-end logging stays consistent
                   cameOnAt.current[mp.player_id] = elapsed;
                 }
-                await updatePlayerPlayTime.mutateAsync({
-                  playerId: mp.player_id,
-                  totalPlaySeconds: newSeconds,
-                });
+                await Promise.all([
+                  updatePlayerPlayTime.mutateAsync({ playerId: mp.player_id, totalPlaySeconds: newSeconds }),
+                  updatePlayerMeta.mutateAsync({ playerId: mp.player_id, meta }),
+                ]);
                 setPlayerDetailId(null);
               }}
             />
