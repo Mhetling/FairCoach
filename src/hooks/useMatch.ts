@@ -159,6 +159,22 @@ export function useLogGoal(matchId: string | undefined) {
   });
 }
 
+export function useUpdatePlayerPlayTime(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { playerId: string; totalPlaySeconds: number }) => {
+      if (!matchId) return;
+      const { error } = await supabase
+        .from("match_players")
+        .update({ total_play_seconds: args.totalPlaySeconds })
+        .eq("match_id", matchId)
+        .eq("player_id", args.playerId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
 export function useUpdateMatchSummary(matchId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

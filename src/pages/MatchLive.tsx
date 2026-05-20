@@ -28,8 +28,11 @@ import {
   useEndPeriod,
   useLogGoal,
   useMatchDetail,
+  useMatchEvents,
   useSubstitute,
   useUpdateMatch,
+  useUpdatePlayerPlayTime,
+  type RichMatchEvent,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
 import { useTeam } from "@/hooks/useTeams";
@@ -274,23 +277,52 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", full
 
 // ─── Field token ──────────────────────────────────────────────────────────────
 
-function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel, isGK }: {
+function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel, isGK,
+  onLongPressStart, onLongPressEnd }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
   positionLabel?: string; isGK?: boolean;
+  onLongPressStart?: () => void; onLongPressEnd?: () => void;
 }) {
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
   const firstName = mp.player.name.split(" ")[0];
   const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
+
+  const mergedListeners = {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerDown?.(e);
+      onLongPressStart?.();
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerUp?.(e);
+      onLongPressEnd?.();
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerCancel?.(e);
+      onLongPressEnd?.();
+    },
+  };
+
   return (
-    <div style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px pointer-events-none">
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...mergedListeners}
+      style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+      className={cn(
+        "absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-px",
+        "touch-none select-none cursor-grab active:cursor-grabbing",
+        isDragging && "opacity-30",
+      )}
+    >
       {(positionLabel ?? (isGK ? "MV" : undefined)) && (
-        <span className="rounded bg-black/40 px-1 py-px text-[8px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm">
+        <span className="rounded bg-black/40 px-1 py-px text-[8px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm pointer-events-none">
           {positionLabel ?? "MV"}
         </span>
       )}
       <div className={cn(
-        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md",
+        "flex h-[46px] w-[46px] items-center justify-center rounded-full border-2 font-bold text-center leading-tight px-1 transition-all duration-150 shadow-md pointer-events-none",
         fontSize,
         isPendingSwap
           ? "scale-125 border-yellow-400 bg-yellow-400 text-ink shadow-lg"
@@ -300,7 +332,7 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
       )}>
         {firstName}
       </div>
-      <span className="text-[10px] font-mono text-white/90 drop-shadow mt-0.5">
+      <span className="text-[10px] font-mono text-white/90 drop-shadow mt-0.5 pointer-events-none">
         {fmtTime(playSeconds)}
       </span>
     </div>
@@ -309,26 +341,133 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
 
 // ─── Bench item ───────────────────────────────────────────────────────────────
 
-function BenchItem({ mp, playSeconds, fpColor }: {
+function BenchItem({ mp, playSeconds, fpColor, onLongPressStart, onLongPressEnd }: {
   mp: RichMatchPlayer; playSeconds: number; fpColor: FPColor;
+  onLongPressStart?: () => void; onLongPressEnd?: () => void;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
   const firstName = mp.player.name.split(" ")[0];
   const fontSize = firstName.length <= 4 ? "text-sm" : firstName.length <= 6 ? "text-xs" : "text-[10px]";
+
+  const mergedListeners = {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerDown?.(e);
+      onLongPressStart?.();
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerUp?.(e);
+      onLongPressEnd?.();
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      (listeners as Record<string, (e: React.PointerEvent) => void>).onPointerCancel?.(e);
+      onLongPressEnd?.();
+    },
+  };
+
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners}
+    <div ref={setNodeRef} {...attributes} {...mergedListeners}
       className={cn(
         "flex flex-col items-center gap-1.5 select-none touch-none cursor-grab active:cursor-grabbing",
         isDragging && "opacity-30",
       )}>
       <div className={cn(
-        "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1",
+        "flex h-14 w-14 items-center justify-center rounded-full font-bold text-center leading-tight px-1 pointer-events-none",
         FP_CIRCLE_BG[fpColor], FP_CIRCLE_TEXT[fpColor], fontSize,
       )}>
         {firstName}
       </div>
-      <div className="text-xs font-mono text-ink-muted">{fmtTime(playSeconds)}</div>
+      <div className="text-xs font-mono text-ink-muted pointer-events-none">{fmtTime(playSeconds)}</div>
     </div>
+  );
+}
+
+// ─── Player detail / play-time edit dialog ────────────────────────────────────
+
+function PlayerDetailDialog({ mp, currentPlaySeconds, events, onSave, onClose }: {
+  mp: RichMatchPlayer;
+  currentPlaySeconds: number;
+  events: RichMatchEvent[];
+  onSave: (newSeconds: number) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [editSeconds, setEditSeconds] = useState(currentPlaySeconds);
+  const [saving, setSaving] = useState(false);
+
+  const playerEvents = events
+    .filter((e) => e.player_id === mp.player_id && ["on", "off", "goal"].includes(e.event_type))
+    .sort((a, b) => a.at_seconds - b.at_seconds);
+
+  function eventLabel(e: RichMatchEvent) {
+    const min = Math.floor(e.at_seconds / 60);
+    if (e.event_type === "on")   return `${min}' — Kom inn`;
+    if (e.event_type === "off")  return `${min}' — Gikk ut`;
+    if (e.event_type === "goal") return `${min}' — Mål`;
+    return `${min}' — ${e.event_type}`;
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try { await onSave(editSeconds); } finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {mp.player.jersey_number != null ? `#${mp.player.jersey_number} ` : ""}
+            {mp.player.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Event history */}
+        {playerEvents.length > 0 && (
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-1.5">Hendelser</p>
+            {playerEvents.map((e) => (
+              <div key={e.id} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm bg-cream-dark">
+                <span className="w-5 text-center">
+                  {e.event_type === "on"   ? "↑" :
+                   e.event_type === "off"  ? "↓" : "⚽"}
+                </span>
+                <span className="text-ink-muted">{eventLabel(e)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Play time editor */}
+        <div className="space-y-2 pt-1">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Juster spilletid</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setEditSeconds((s) => Math.max(0, s - 60))}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink/20 text-lg font-bold text-ink active:bg-ink/10"
+            >−</button>
+            <span className="flex-1 text-center font-mono text-2xl tabular-nums">{fmtTime(editSeconds)}</span>
+            <button
+              type="button"
+              onClick={() => setEditSeconds((s) => s + 60)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink/20 text-lg font-bold text-ink active:bg-ink/10"
+            >+</button>
+          </div>
+          {mp.on_field && (
+            <p className="text-xs text-ink-muted">
+              Spilleren er på banen — klokken nullstilles fra nå av ved lagring.
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-2">
+          <Button variant="ghost" className="flex-1" onClick={onClose}>Avbryt</Button>
+          <Button variant="accent" className="flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? "Lagrer …" : "Lagre"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -571,6 +710,8 @@ export function MatchLive() {
   const substitute = useSubstitute(matchId);
   const endPeriod = useEndPeriod(matchId);
   const logGoal = useLogGoal(matchId);
+  const { data: matchEvents = [] } = useMatchEvents(matchId);
+  const updatePlayerPlayTime = useUpdatePlayerPlayTime(matchId);
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -582,12 +723,15 @@ export function MatchLive() {
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [playerDetailId, setPlayerDetailId] = useState<string | null>(null);
+  const [, setSwapVersion] = useState(0); // triggers re-render after field swaps
 
   const cameOnAt = useRef<Record<string, number>>({});
   const periodStartAt = useRef(0);
   const positionMap = useRef<Record<string, number>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPointerPos = useRef<{ x: number; y: number } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playersRef = useRef<RichMatchPlayer[]>([]);
   const fieldPlayersRef = useRef<RichMatchPlayer[]>([]);
@@ -762,6 +906,14 @@ export function MatchLive() {
     return mp.total_play_seconds;
   }
 
+  function startLongPress(playerId: string) {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => setPlayerDetailId(playerId), 700);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
+
   function getFP(mp: RichMatchPlayer) {
     return calcFP(getPlayTime(mp), elapsed, match.players_on_field, players.length);
   }
@@ -779,13 +931,14 @@ export function MatchLive() {
 
   const MAX_DROP_RADIUS_PX = 70;
 
-  function closestFieldPlayer(cx: number, cy: number): RichMatchPlayer | null {
+  function closestFieldPlayer(cx: number, cy: number, excludeId?: string): RichMatchPlayer | null {
     const pitchEl = document.getElementById("pitch-container");
     if (!pitchEl) return null;
     const pitchRect = pitchEl.getBoundingClientRect();
     let closest: RichMatchPlayer | null = null;
     let minDist = Infinity;
     for (const fp of fieldPlayersRef.current) {
+      if (excludeId && fp.player_id === excludeId) continue;
       const posIdx = positionMap.current[fp.player_id] ?? 0;
       const pos = positions[posIdx] ?? { x: 50, y: 50 };
       const dist = Math.hypot(
@@ -888,13 +1041,15 @@ export function MatchLive() {
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(e.active.id as string);
+    cancelLongPress();
   }
 
   function handleDragMove(e: DragMoveEvent) {
     if (!e.over || e.over.id !== "pitch") { setPendingSwapId(null); return; }
     const pos = lastPointerPos.current;
     if (!pos) return;
-    setPendingSwapId(closestFieldPlayer(pos.x, pos.y)?.player_id ?? null);
+    // Exclude the dragged player from highlight candidates
+    setPendingSwapId(closestFieldPlayer(pos.x, pos.y, activeId ?? undefined)?.player_id ?? null);
   }
 
   function handleDragEnd(e: DragEndEvent) {
@@ -902,24 +1057,38 @@ export function MatchLive() {
     setActiveId(null);
     setPendingSwapId(null);
     if (!over || over.id !== "pitch") return;
-    const benchPlayer = playersRef.current.find((p) => p.player_id === active.id);
-    if (!benchPlayer || benchPlayer.on_field) return;
+
+    const draggedPlayer = playersRef.current.find((p) => p.player_id === active.id);
+    if (!draggedPlayer) return;
     const pos = lastPointerPos.current;
     if (!pos) return;
-    const fieldPlayer = closestFieldPlayer(pos.x, pos.y);
-    if (!fieldPlayer) return;
-    const goingOffTotalSeconds = getPlayTime(fieldPlayer);
-    const posIdx = positionMap.current[fieldPlayer.player_id] ?? 0;
-    positionMap.current[benchPlayer.player_id] = posIdx;
-    delete positionMap.current[fieldPlayer.player_id];
-    cameOnAt.current[benchPlayer.player_id] = elapsed;
-    delete cameOnAt.current[fieldPlayer.player_id];
-    substitute.mutate({
-      comingOnId: benchPlayer.player_id,
-      goingOffId: fieldPlayer.player_id,
-      goingOffTotalSeconds,
-      atSeconds: elapsed,
-    });
+
+    if (draggedPlayer.on_field) {
+      // Field ↔ Field: swap positions in the formation (no substitution logged)
+      const targetPlayer = closestFieldPlayer(pos.x, pos.y, draggedPlayer.player_id);
+      if (!targetPlayer) return;
+      const fromIdx = positionMap.current[draggedPlayer.player_id];
+      const toIdx = positionMap.current[targetPlayer.player_id];
+      if (fromIdx !== undefined) positionMap.current[targetPlayer.player_id] = fromIdx;
+      if (toIdx !== undefined) positionMap.current[draggedPlayer.player_id] = toIdx;
+      setSwapVersion((v) => v + 1);
+    } else {
+      // Bench → Field: substitution
+      const fieldPlayer = closestFieldPlayer(pos.x, pos.y);
+      if (!fieldPlayer) return;
+      const goingOffTotalSeconds = getPlayTime(fieldPlayer);
+      const posIdx = positionMap.current[fieldPlayer.player_id] ?? 0;
+      positionMap.current[draggedPlayer.player_id] = posIdx;
+      delete positionMap.current[fieldPlayer.player_id];
+      cameOnAt.current[draggedPlayer.player_id] = elapsed;
+      delete cameOnAt.current[fieldPlayer.player_id];
+      substitute.mutate({
+        comingOnId: draggedPlayer.player_id,
+        goingOffId: fieldPlayer.player_id,
+        goingOffTotalSeconds,
+        atSeconds: elapsed,
+      });
+    }
   }
 
   return (
@@ -1029,7 +1198,6 @@ export function MatchLive() {
             {fieldPlayers.map((mp, i) => {
               const posIdx = positionMap.current[mp.player_id] ?? i;
               const inGKSlot = isInGKSlot(mp);
-              // Hockey: use rink position label; other sports: show "MV" for GK slot
               const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
               return (
                 <FieldToken key={mp.player_id} mp={mp}
@@ -1037,7 +1205,9 @@ export function MatchLive() {
                   playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
                   isPendingSwap={mp.player_id === pendingSwapId}
                   positionLabel={posLabel}
-                  isGK={inGKSlot} />
+                  isGK={inGKSlot}
+                  onLongPressStart={() => startLongPress(mp.player_id)}
+                  onLongPressEnd={cancelLongPress} />
               );
             })}
             {activeId && (
@@ -1081,7 +1251,9 @@ export function MatchLive() {
             <div className="flex flex-wrap gap-4">
               {benchPlayers.map((mp) => (
                 <BenchItem key={mp.player_id} mp={mp}
-                  playSeconds={getPlayTime(mp)} fpColor={getFP(mp)} />
+                  playSeconds={getPlayTime(mp)} fpColor={getFP(mp)}
+                  onLongPressStart={() => startLongPress(mp.player_id)}
+                  onLongPressEnd={cancelLongPress} />
               ))}
             </div>
           </div>
@@ -1126,6 +1298,31 @@ export function MatchLive() {
           onSelect={handleFormationChange}
           onClose={() => setFormationDialogOpen(false)}
         />
+
+        {/* Player detail / play-time edit dialog */}
+        {playerDetailId && (() => {
+          const mp = players.find((p) => p.player_id === playerDetailId);
+          if (!mp || !matchId) return null;
+          return (
+            <PlayerDetailDialog
+              mp={mp}
+              currentPlaySeconds={getPlayTime(mp)}
+              events={matchEvents}
+              onClose={() => setPlayerDetailId(null)}
+              onSave={async (newSeconds) => {
+                if (mp.on_field) {
+                  // Adjust cameOnAt so future period-end logging stays consistent
+                  cameOnAt.current[mp.player_id] = elapsed;
+                }
+                await updatePlayerPlayTime.mutateAsync({
+                  playerId: mp.player_id,
+                  totalPlaySeconds: newSeconds,
+                });
+                setPlayerDetailId(null);
+              }}
+            />
+          );
+        })()}
 
         {/* Confirm end match dialog */}
         <Dialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
