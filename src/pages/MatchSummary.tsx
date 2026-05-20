@@ -243,10 +243,10 @@ const ShareCard = forwardRef<HTMLDivElement, {
             </div>
           </div>
           {hasScore && (
-            <div style={{ flexShrink: 0, textAlign: "center" as const,
-              background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 20px" }}>
-              <div style={{ fontSize: 42, fontWeight: 800, color: C.cream,
-                lineHeight: 1.15, letterSpacing: -2, fontVariantNumeric: "tabular-nums" as const }}>
+            <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 20px",
+              minWidth: 90 }}>
+              <div style={{ fontSize: 42, fontWeight: 800, color: C.cream, lineHeight: 1.15 }}>
                 {scoreHome}–{scoreAway}
               </div>
             </div>
@@ -285,8 +285,7 @@ const ShareCard = forwardRef<HTMLDivElement, {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%",
                     background: FP_HEX[fp], flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.text,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.text, minWidth: 0 }}>
                     {name}
                     {mp.player.position === "GK" && (
                       <span style={{ fontSize: 10, color: C.muted, marginLeft: 5 }}>(keeper)</span>
