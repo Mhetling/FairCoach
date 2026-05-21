@@ -59,7 +59,7 @@ export const SPORT_CONFIGS: Record<SportId, SportConfig> = {
       { id: "BACK", label: "Back" },
       { id: "PIVOT", label: "Strek/Playmaker" },
     ],
-    playersOnFieldOptions: [4, 5, 6, 7],
+    playersOnFieldOptions: [3, 4, 5, 6, 7],
     defaultPlayersOnField: 7,
     periodLengthOptions: [
       { label: "15 min", seconds: 900 },

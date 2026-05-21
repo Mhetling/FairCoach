@@ -16,6 +16,9 @@ import { getSportConfig } from "@/lib/sportConfig";
 import {
   RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
 } from "@/lib/hockeyRinks";
+import {
+  HANDBALL_FORMAT_SPECS, HANDBALL_FORMATS, type HandballFormat,
+} from "@/lib/handballFormats";
 import { cn } from "@/lib/utils";
 import type { SportId } from "@/types/database";
 
@@ -50,18 +53,26 @@ export function MatchSetup() {
   const sportId = (team?.sport_id ?? "soccer") as SportId;
   const config = getSportConfig(sportId);
   const isHockey = sportId === "hockey";
+  const isHandball = sportId === "handball";
 
   const [opponent, setOpponent] = useState("");
   const [hockeyFormat, setHockeyFormat] = useState<HockeyFormat>("5v5-full");
+  const [handballFormat, setHandballFormat] = useState<HandballFormat>("7v7");
   const [playersOnField, setPlayersOnField] = useState(
-    isHockey ? RINK_SPECS["5v5-full"].playersOnField : config.defaultPlayersOnField,
+    isHockey ? RINK_SPECS["5v5-full"].playersOnField
+    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].playersOnField
+    : config.defaultPlayersOnField,
   );
   const [periodLengthSecs, setPeriodLengthSecs] = useState(
-    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodLengthSeconds : config.defaultPeriodLengthSeconds,
+    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodLengthSeconds
+    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].periodLengthSeconds
+    : config.defaultPeriodLengthSeconds,
   );
   const [customMinutes, setCustomMinutes] = useState("");
   const [periodCount, setPeriodCount] = useState(
-    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodCount : config.defaultPeriodCount,
+    isHockey ? FORMAT_DEFAULTS["5v5-full"].periodCount
+    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].periodCount
+    : config.defaultPeriodCount,
   );
   const [formation, setFormation] = useState(DEFAULT_11_FORMATION);
   const [trackGoals, setTrackGoals] = useState(config.trackGoalsDefault);
@@ -105,6 +116,14 @@ export function MatchSetup() {
     setPeriodCount(FORMAT_DEFAULTS[fmt].periodCount);
   }
 
+  function selectHandballFormat(fmt: HandballFormat) {
+    setHandballFormat(fmt);
+    const spec = HANDBALL_FORMAT_SPECS[fmt];
+    setPlayersOnField(spec.playersOnField);
+    setPeriodLengthSecs(spec.periodLengthSeconds);
+    setPeriodCount(spec.periodCount);
+  }
+
   function togglePlayer(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -124,10 +143,12 @@ export function MatchSetup() {
         team_id: teamId,
         sport_id: sportId,
         opponent: opponent.trim() || null,
-        players_on_field: isHockey ? RINK_SPECS[hockeyFormat].playersOnField : playersOnField,
+        players_on_field: isHockey ? RINK_SPECS[hockeyFormat].playersOnField
+          : isHandball ? HANDBALL_FORMAT_SPECS[handballFormat].playersOnField
+          : playersOnField,
         period_length_seconds: effectivePeriodSecs,
         period_count: periodCount,
-        formation: isSoccer11 ? formation : isHockey ? hockeyFormat : null,
+        formation: isSoccer11 ? formation : isHockey ? hockeyFormat : isHandball ? handballFormat : null,
         track_goals: trackGoals,
         selected_player_ids: Array.from(selectedIds),
       });
@@ -195,6 +216,48 @@ export function MatchSetup() {
                             active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
                           )}>
                             {def.periodCount}×{def.periodLengthSeconds / 60} min
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : isHandball ? (
+              <div className="space-y-2">
+                <Label>Format</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {HANDBALL_FORMATS.map((fmt) => {
+                    const spec = HANDBALL_FORMAT_SPECS[fmt];
+                    const active = handballFormat === fmt;
+                    return (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => selectHandballFormat(fmt)}
+                        className={cn(
+                          "flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-colors",
+                          active
+                            ? "border-ink bg-ink/5"
+                            : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+                        )}
+                      >
+                        <div className="text-sm font-semibold text-ink leading-snug">{spec.label}</div>
+                        <div className="text-xs text-ink-muted">{spec.ageGroup}</div>
+                        <div className="mt-1 text-xs font-medium text-ink">{spec.tagline}</div>
+                        <div className="text-xs text-ink-muted leading-snug">{spec.description}</div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          <span className={cn(
+                            "rounded px-1.5 py-0.5 text-xs font-medium",
+                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+                          )}>
+                            {spec.playersOnField} spillere
+                          </span>
+                          <span className={cn(
+                            "rounded px-1.5 py-0.5 text-xs font-medium",
+                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+                          )}>
+                            {spec.periodCount}×{spec.periodLengthSeconds / 60} min
                           </span>
                         </div>
                       </button>

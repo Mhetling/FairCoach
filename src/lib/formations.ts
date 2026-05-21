@@ -96,6 +96,10 @@ export const DEFAULT_11_FORMATION = "4-4-2";
 // x values kept in [10, 90] so 66px tokens don't clip on a 375px mobile screen.
 // y follows a parabola y = 58 + 0.007*(x-50)^2 so all players sit on one curved arc.
 const HANDBALL_POSITIONS: Record<number, { x: number; y: number }[]> = {
+  3: [
+    { x: 50, y: 95 },                              // Spillende keeper
+    { x: 25, y: 65 }, { x: 75, y: 65 },
+  ],
   4: [
     { x: 50, y: 95 },                              // GK
     { x: 20, y: 64 }, { x: 50, y: 58 }, { x: 80, y: 64 },

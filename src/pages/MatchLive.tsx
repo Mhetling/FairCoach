@@ -55,7 +55,7 @@ import { HockeyRinkHalfContent } from "@/components/HockeyRink";
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 // Auto-pause the clock this many seconds past the period's scheduled end
-const AUTO_STOP_BUFFER_SEC = 10 * 60;
+const AUTO_STOP_BUFFER_SEC = 15 * 60;
 
 function lsClockKey(matchId: string) {
   return `faircoach_clock_${matchId}`;
@@ -99,9 +99,9 @@ function calcFP(play: number, elapsed: number, onField: number, total: number): 
 // ─── Zone helpers ─────────────────────────────────────────────────────────────
 
 export const ZONE_DISPLAY: Record<string, string> = {
-  keeper: "Keeper", back: "Back", midt: "Midt", angrep: "Angrep",
+  keeper: "Keeper", back: "Back", wing: "Wing", strek: "Strek", midt: "Midt", angrep: "Angrep",
 };
-const ZONE_ORDER = ["keeper", "back", "midt", "angrep"];
+const ZONE_ORDER = ["keeper", "back", "wing", "strek", "midt", "angrep"];
 
 function computeZoneForSlot(
   posIdx: number,
@@ -117,11 +117,15 @@ function computeZoneForSlot(
     const y = rinkPos?.y ?? 60;
     return y > 70 ? "back" : y >= 55 ? "midt" : "angrep";
   }
-  // Soccer / handball — index 0 is always GK
   if (posIdx === 0) return "keeper";
-  const rawPositions = sportId === "handball"
-    ? getHandballPositions(playersOnField)
-    : getFormationPositions(playersOnField, formation);
+  if (sportId === "handball") {
+    const pos = getHandballPositions(playersOnField)[posIdx];
+    if (!pos) return "back";
+    if (pos.x <= 20 || pos.x >= 80) return "wing";
+    if (pos.y < 45) return "strek";
+    return "back";
+  }
+  const rawPositions = getFormationPositions(playersOnField, formation);
   const y = rawPositions[posIdx]?.y ?? 65;
   return y > 75 ? "back" : y >= 55 ? "midt" : "angrep";
 }
