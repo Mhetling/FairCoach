@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { Match, MatchEvent, MatchPlayer, PlayerMeta, ZoneTime } from "@/types/database";
 
 export type RichMatchPlayer = MatchPlayer & {
-  player: { id: string; name: string; jersey_number: number | null; position: string | null };
+  player: { id: string; name: string; jersey_number: number | null; position: string | null; dominant_side: "R" | "L" | null };
 };
 
 export function useMatchDetail(matchId: string | undefined) {
@@ -16,7 +16,7 @@ export function useMatchDetail(matchId: string | undefined) {
         supabase.from("matches").select("*").eq("id", matchId).single(),
         supabase
           .from("match_players")
-          .select("*, player:players(id, name, jersey_number, position)")
+          .select("*, player:players(id, name, jersey_number, position, dominant_side)")
           .eq("match_id", matchId),
       ]);
       if (me) throw me;

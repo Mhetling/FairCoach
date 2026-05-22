@@ -30,6 +30,7 @@ export type Player = {
   name: string;
   jersey_number: number | null;
   position: SoccerPosition | string | null;
+  dominant_side: "R" | "L" | null;
   created_at: string;
 };
 
@@ -122,6 +123,7 @@ export type Database = {
           name: string;
           jersey_number?: number | null;
           position?: string | null;
+          dominant_side?: "R" | "L" | null;
           created_at?: string;
         };
         Update: Partial<Omit<Player, "id">>;

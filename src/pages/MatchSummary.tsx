@@ -34,8 +34,22 @@ type FPColor = "blue" | "green" | "yellow" | "red";
 const FP_DOT: Record<FPColor, string> = {
   blue: "bg-blue-500", green: "bg-green-500", yellow: "bg-yellow-400", red: "bg-red-500",
 };
-const ZONE_LABEL: Record<string, string> = { keeper: "Keeper", back: "Back", wing: "Wing", strek: "Strek", midt: "Midt", angrep: "Angrep" };
-const ZONE_ORDER = ["keeper", "back", "wing", "strek", "midt", "angrep"];
+const ZONE_LABEL: Record<string, string> = {
+  keeper: "Keeper",
+  "l-back": "V. back", back: "Back", "r-back": "H. back",
+  "l-wing": "V. kant", wing: "Kant", "r-wing": "H. kant",
+  strek: "Strek",
+  "l-midt": "V. midt", midt: "Midt", "r-midt": "H. midt",
+  "l-angrep": "V. angrep", angrep: "Angrep", "r-angrep": "H. angrep",
+};
+const ZONE_ORDER = [
+  "keeper",
+  "l-back", "back", "r-back",
+  "l-wing", "wing", "r-wing",
+  "strek",
+  "l-midt", "midt", "r-midt",
+  "l-angrep", "angrep", "r-angrep",
+];
 const FP_HEX: Record<FPColor, string> = {
   blue: "#3b82f6", green: "#22c55e", yellow: "#facc15", red: "#ef4444",
 };

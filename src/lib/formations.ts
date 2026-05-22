@@ -97,23 +97,23 @@ export const DEFAULT_11_FORMATION = "4-4-2";
 // y follows a parabola y = 58 + 0.007*(x-50)^2 so all players sit on one curved arc.
 const HANDBALL_POSITIONS: Record<number, { x: number; y: number }[]> = {
   3: [
-    { x: 50, y: 95 },                              // Spillende keeper
+    { x: 50, y: 88 },                              // Spillende keeper
     { x: 25, y: 65 }, { x: 75, y: 65 },
   ],
   4: [
-    { x: 50, y: 95 },                              // GK
+    { x: 50, y: 88 },                              // GK
     { x: 20, y: 64 }, { x: 50, y: 58 }, { x: 80, y: 64 },
   ],
   5: [
-    { x: 50, y: 95 },                              // GK
+    { x: 50, y: 88 },                              // GK
     { x: 10, y: 69 }, { x: 37, y: 59 }, { x: 63, y: 59 }, { x: 90, y: 69 },
   ],
   6: [
-    { x: 50, y: 95 },                              // GK
+    { x: 50, y: 88 },                              // GK
     { x: 10, y: 69 }, { x: 30, y: 61 }, { x: 50, y: 58 }, { x: 70, y: 61 }, { x: 90, y: 69 },
   ],
   7: [
-    { x: 50, y: 95 },                              // GK
+    { x: 50, y: 88 },                              // GK
     { x: 10, y: 69 }, { x: 26, y: 62 }, { x: 42, y: 59 }, { x: 58, y: 59 }, { x: 74, y: 62 }, { x: 90, y: 69 },
   ],
 };

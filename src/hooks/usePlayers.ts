@@ -28,6 +28,7 @@ export function useCreatePlayer() {
       name: string;
       jersey_number: number | null;
       position: string | null;
+      dominant_side?: "R" | "L" | null;
     }) => {
       const { data, error } = await supabase.from("players").insert(input).select().single();
       if (error) throw error;
@@ -48,6 +49,7 @@ export function useUpdatePlayer() {
       name: string;
       jersey_number: number | null;
       position: string | null;
+      dominant_side?: "R" | "L" | null;
     }) => {
       const { id, team_id, ...fields } = input;
       const { data, error } = await supabase

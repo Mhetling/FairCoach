@@ -99,9 +99,21 @@ function calcFP(play: number, elapsed: number, onField: number, total: number): 
 // ─── Zone helpers ─────────────────────────────────────────────────────────────
 
 export const ZONE_DISPLAY: Record<string, string> = {
-  keeper: "Keeper", back: "Back", wing: "Wing", strek: "Strek", midt: "Midt", angrep: "Angrep",
+  keeper: "Keeper",
+  "l-back": "V. back", back: "Back", "r-back": "H. back",
+  "l-wing": "V. kant", wing: "Kant", "r-wing": "H. kant",
+  strek: "Strek",
+  "l-midt": "V. midt", midt: "Midt", "r-midt": "H. midt",
+  "l-angrep": "V. angrep", angrep: "Angrep", "r-angrep": "H. angrep",
 };
-const ZONE_ORDER = ["keeper", "back", "wing", "strek", "midt", "angrep"];
+const ZONE_ORDER = [
+  "keeper",
+  "l-back", "back", "r-back",
+  "l-wing", "wing", "r-wing",
+  "strek",
+  "l-midt", "midt", "r-midt",
+  "l-angrep", "angrep", "r-angrep",
+];
 
 function computeZoneForSlot(
   posIdx: number,
@@ -114,20 +126,28 @@ function computeZoneForSlot(
   if (sportId === "hockey") {
     const rinkPos = RINK_POSITIONS[hockeyFmt][posIdx];
     if (rinkPos?.isGoalie) return "keeper";
+    const x = rinkPos?.x ?? 50;
     const y = rinkPos?.y ?? 60;
-    return y > 70 ? "back" : y >= 55 ? "midt" : "angrep";
+    const side = x < 42 ? "l-" : x > 58 ? "r-" : "";
+    return y >= 70 ? `${side}back` : y < 60 ? `${side}wing` : "midt";
   }
   if (posIdx === 0) return "keeper";
   if (sportId === "handball") {
     const pos = getHandballPositions(playersOnField)[posIdx];
     if (!pos) return "back";
-    if (pos.x <= 20 || pos.x >= 80) return "wing";
+    if (pos.x <= 20) return "l-wing";
+    if (pos.x >= 80) return "r-wing";
     if (pos.y < 45) return "strek";
-    return "back";
+    return pos.x < 47 ? "l-back" : pos.x > 53 ? "r-back" : "back";
   }
+  // Soccer
   const rawPositions = getFormationPositions(playersOnField, formation);
-  const y = rawPositions[posIdx]?.y ?? 65;
-  return y > 75 ? "back" : y >= 55 ? "midt" : "angrep";
+  const pos = rawPositions[posIdx];
+  const y = pos?.y ?? 65;
+  const x = pos?.x ?? 50;
+  const side = x < 42 ? "l-" : x > 58 ? "r-" : "";
+  const depth = y > 75 ? "back" : y >= 55 ? "midt" : "angrep";
+  return `${side}${depth}`;
 }
 
 // ─── SVG pitch markings ───────────────────────────────────────────────────────
@@ -315,10 +335,10 @@ function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", full
 // ─── Field token ──────────────────────────────────────────────────────────────
 
 function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabel, isGK,
-  subOutRank, onLongPressStart, onLongPressEnd }: {
+  subOutRank, lightSurface, onLongPressStart, onLongPressEnd }: {
   mp: RichMatchPlayer; pos: { x: number; y: number };
   playSeconds: number; fpColor: FPColor; isPendingSwap: boolean;
-  positionLabel?: string; isGK?: boolean; subOutRank?: number;
+  positionLabel?: string; isGK?: boolean; subOutRank?: number; lightSurface?: boolean;
   onLongPressStart?: () => void; onLongPressEnd?: () => void;
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: mp.player_id });
@@ -376,7 +396,12 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
           </span>
         )}
       </div>
-      <span className="text-[10px] font-mono text-white/90 drop-shadow mt-0.5 pointer-events-none">
+      <span className={cn(
+        "text-[10px] font-mono mt-0.5 pointer-events-none",
+        lightSurface
+          ? "rounded px-0.5 bg-black/20 text-ink/90"
+          : "text-white/90 drop-shadow",
+      )}>
         {fmtTime(playSeconds)}
       </span>
     </div>
@@ -437,8 +462,16 @@ function BenchItem({ mp, playSeconds, fpColor, priority, onLongPressStart, onLon
 
 const NOTE_PRESETS = ["Skadet", "Ville ikke spille", "Foreldreavtale", "Utvist"];
 
-function PlayerDetailDialog({ mp, currentPlaySeconds, events, liveZones, onSave, onClose }: {
+function dominantSideLabel(sportId: string, side: "R" | "L"): string {
+  const word = sportId === "soccer" ? (side === "R" ? "Høyrefot" : "Venstrefot")
+    : sportId === "hockey" ? (side === "R" ? "Høyre skudd" : "Venstre skudd")
+    : side === "R" ? "Høyrehendt" : "Venstrehendt";
+  return word;
+}
+
+function PlayerDetailDialog({ mp, sportId, currentPlaySeconds, events, liveZones, onSave, onClose }: {
   mp: RichMatchPlayer;
+  sportId: string;
   currentPlaySeconds: number;
   events: RichMatchEvent[];
   liveZones: ZoneTime[];
@@ -478,6 +511,11 @@ function PlayerDetailDialog({ mp, currentPlaySeconds, events, liveZones, onSave,
             {mp.player.jersey_number != null ? `#${mp.player.jersey_number} ` : ""}
             {mp.player.name}
           </DialogTitle>
+          {mp.player.dominant_side && (
+            <p className="text-xs text-ink-muted pt-0.5">
+              {dominantSideLabel(sportId, mp.player.dominant_side)}
+            </p>
+          )}
         </DialogHeader>
 
         {/* Event history */}
@@ -1370,6 +1408,7 @@ export function MatchLive() {
                     positionLabel={posLabel}
                     isGK={inGKSlot}
                     subOutRank={subOutRankMap.get(mp.player_id)}
+                    lightSurface={isHockey}
                     onLongPressStart={() => startLongPress(mp.player_id)}
                     onLongPressEnd={cancelLongPress} />
                 );
@@ -1462,6 +1501,7 @@ export function MatchLive() {
           return (
             <PlayerDetailDialog
               mp={mp}
+              sportId={match.sport_id}
               currentPlaySeconds={getPlayTime(mp)}
               events={matchEvents}
               liveZones={getLiveZones(mp.player_id)}

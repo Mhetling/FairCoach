@@ -28,10 +28,16 @@ function isValidPlayerName(value: string): boolean {
   return /^[\p{L}\s\-.]+$/u.test(value);
 }
 
+function dominantSideFieldLabel(sportId: SportId): string {
+  if (sportId === "soccer") return "Dominant fot";
+  if (sportId === "hockey") return "Skuddhånd";
+  return "Dominant hånd";
+}
+
 function PlayerDialog({
-  open, onClose, teamId, player, positions,
+  open, onClose, teamId, sportId, player, positions,
 }: {
-  open: boolean; onClose: () => void; teamId: string; player: Player | null; positions: SportPosition[];
+  open: boolean; onClose: () => void; teamId: string; sportId: SportId; player: Player | null; positions: SportPosition[];
 }) {
   const isEdit = player !== null;
   const create = useCreatePlayer();
@@ -40,11 +46,13 @@ function PlayerDialog({
   const [name, setName] = useState(player?.name ?? "");
   const [jersey, setJersey] = useState(player?.jersey_number?.toString() ?? "");
   const [position, setPosition] = useState<string | null>(player?.position ?? null);
+  const [dominantSide, setDominantSide] = useState<"R" | "L" | null>(player?.dominant_side ?? null);
 
   function resetTo(p: Player | null) {
     setName(p?.name ?? "");
     setJersey(p?.jersey_number?.toString() ?? "");
     setPosition(p?.position ?? null);
+    setDominantSide(p?.dominant_side ?? null);
   }
 
   function handleOpenChange(next: boolean) { if (!next) onClose(); }
@@ -57,10 +65,10 @@ function PlayerDialog({
     if (!name.trim() || !isValidPlayerName(name.trim())) return;
     try {
       if (isEdit) {
-        await update.mutateAsync({ id: player.id, team_id: teamId, name: name.trim(), jersey_number: jersey ? Number(jersey) : null, position: position || null });
+        await update.mutateAsync({ id: player.id, team_id: teamId, name: name.trim(), jersey_number: jersey ? Number(jersey) : null, position: position || null, dominant_side: dominantSide });
         toast({ title: "Spiller oppdatert", variant: "success" });
       } else {
-        await create.mutateAsync({ team_id: teamId, name: name.trim(), jersey_number: jersey ? Number(jersey) : null, position: position || null });
+        await create.mutateAsync({ team_id: teamId, name: name.trim(), jersey_number: jersey ? Number(jersey) : null, position: position || null, dominant_side: dominantSide });
         toast({ title: "Spiller lagt til", variant: "success" });
         resetTo(null);
       }
@@ -124,6 +132,27 @@ function PlayerDialog({
                           ? "border-ink/10 bg-transparent text-ink-muted hover:bg-ink/5"
                           : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5")}>
                     {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>{dominantSideFieldLabel(sportId)}</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {(["R", "L", ""] as const).map((val) => {
+                const active = val === "" ? dominantSide === null : dominantSide === val;
+                const label = val === "R" ? "Høyre" : val === "L" ? "Venstre" : "Ukjent";
+                return (
+                  <button key={val || "none"} type="button"
+                    onClick={() => setDominantSide(val === "" ? null : val)}
+                    className={cn("h-10 rounded-md border text-sm transition-colors",
+                      active
+                        ? "border-ink bg-ink text-cream"
+                        : val === ""
+                          ? "border-ink/10 bg-transparent text-ink-muted hover:bg-ink/5"
+                          : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5")}>
+                    {label}
                   </button>
                 );
               })}
@@ -423,7 +452,7 @@ export function TeamDetail() {
 
       {teamId && (
         <>
-          <PlayerDialog open={playerDialogOpen} onClose={closePlayerDialog} teamId={teamId} player={editingPlayer} positions={sportPositions} />
+          <PlayerDialog open={playerDialogOpen} onClose={closePlayerDialog} teamId={teamId} sportId={(team?.sport_id ?? "soccer") as SportId} player={editingPlayer} positions={sportPositions} />
           <TeamSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} teamId={teamId} />
         </>
       )}
