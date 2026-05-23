@@ -75,34 +75,36 @@ export interface CourtPosition {
 }
 
 export const HANDBALL_COURT_POSITIONS: Record<string, CourtPosition[]> = {
+  // Defensive formation: 6-0 arc in front of own goal (bottom of view).
+  // x/y in full-court % (y=50–100 = own half). toHandballY() maps to display %.
   '4er': [
-    { id: 'p1', label: '1', fullName: 'Utespiller', x: 30, y: 35, isGoalkeeper: false },
-    { id: 'p2', label: '2', fullName: 'Utespiller', x: 70, y: 35, isGoalkeeper: false },
-    { id: 'p3', label: '3', fullName: 'Utespiller', x: 30, y: 65, isGoalkeeper: false },
-    { id: 'p4', label: '4', fullName: 'Utespiller', x: 70, y: 65, isGoalkeeper: false },
+    { id: 'p1', label: '1', fullName: 'Utespiller', x: 22, y: 62, isGoalkeeper: false },
+    { id: 'p2', label: '2', fullName: 'Utespiller', x: 42, y: 70, isGoalkeeper: false },
+    { id: 'p3', label: '3', fullName: 'Utespiller', x: 58, y: 70, isGoalkeeper: false },
+    { id: 'p4', label: '4', fullName: 'Utespiller', x: 78, y: 62, isGoalkeeper: false },
   ],
   '5er': [
     { id: 'mv', label: 'MV', fullName: 'Målvakt',       x: 50, y: 90, isGoalkeeper: true  },
-    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 18, y: 40, isGoalkeeper: false },
-    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 38, y: 55, isGoalkeeper: false },
-    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 62, y: 55, isGoalkeeper: false },
-    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 82, y: 40, isGoalkeeper: false },
+    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 18, y: 64, isGoalkeeper: false },
+    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 40, y: 72, isGoalkeeper: false },
+    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 60, y: 72, isGoalkeeper: false },
+    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 82, y: 64, isGoalkeeper: false },
   ],
   '6er': [
     { id: 'mv', label: 'MV', fullName: 'Målvakt',       x: 50, y: 92, isGoalkeeper: true  },
-    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 15, y: 42, isGoalkeeper: false },
-    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 33, y: 58, isGoalkeeper: false },
-    { id: 'mb', label: 'MB', fullName: 'Midtback',      x: 50, y: 62, isGoalkeeper: false },
-    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 67, y: 58, isGoalkeeper: false },
-    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 85, y: 42, isGoalkeeper: false },
+    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 14, y: 64, isGoalkeeper: false },
+    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 33, y: 72, isGoalkeeper: false },
+    { id: 'mb', label: 'MB', fullName: 'Midtback',      x: 50, y: 74, isGoalkeeper: false },
+    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 67, y: 72, isGoalkeeper: false },
+    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 86, y: 64, isGoalkeeper: false },
   ],
   '7er': [
     { id: 'mv', label: 'MV', fullName: 'Målvakt',       x: 50, y: 93, isGoalkeeper: true  },
-    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 13, y: 42, isGoalkeeper: false },
-    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 30, y: 60, isGoalkeeper: false },
-    { id: 'mb', label: 'MB', fullName: 'Midtback',      x: 50, y: 64, isGoalkeeper: false },
-    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 70, y: 60, isGoalkeeper: false },
-    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 87, y: 42, isGoalkeeper: false },
-    { id: 'st', label: 'ST', fullName: 'Strek',         x: 50, y: 33, isGoalkeeper: false },
+    { id: 'vk', label: 'VK', fullName: 'Venstre kant',  x: 12, y: 64, isGoalkeeper: false },
+    { id: 'vb', label: 'VB', fullName: 'Venstre back',  x: 30, y: 73, isGoalkeeper: false },
+    { id: 'mb', label: 'MB', fullName: 'Midtback',      x: 42, y: 76, isGoalkeeper: false },
+    { id: 'hb', label: 'HB', fullName: 'Høyre back',    x: 70, y: 73, isGoalkeeper: false },
+    { id: 'hk', label: 'HK', fullName: 'Høyre kant',    x: 88, y: 64, isGoalkeeper: false },
+    { id: 'st', label: 'ST', fullName: 'Strek',         x: 58, y: 70, isGoalkeeper: false },
   ],
 };

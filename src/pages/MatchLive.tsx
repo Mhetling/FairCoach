@@ -61,10 +61,15 @@ function lsClockKey(matchId: string) {
   return `faircoach_clock_${matchId}`;
 }
 
-const CROP_START = 1 / 3; // show from y=33% (1/3 into opponent half) to y=100% (own goal)
+const CROP_START = 1 / 3; // soccer/basketball: show from y=33% to y=100%
 
 function toCroppedY(y: number): number {
   return Math.max(0, Math.min(100, (y - CROP_START * 100) / ((1 - CROP_START) * 100) * 100));
+}
+
+// handball: show own defensive half only (full-court y=50–100% → view y=0–100%)
+function toHandballY(y: number): number {
+  return Math.max(0, Math.min(100, (y - 50) * 2));
 }
 
 function fmtTime(s: number) {
@@ -222,31 +227,14 @@ function HandballCourtMarkings({ formatId }: { formatId: string }) {
     return `M ${lx - r},${y0} A ${r},${r} 0 0,${sweep} ${lx},${yc} L ${rx},${yc} A ${r},${r} 0 0,${sweep} ${rx + r},${y0}`;
   }
 
-  if (is4er) {
-    return (
-      <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
-        viewBox={`0 0 ${W} ${L}`} preserveAspectRatio="none">
-        <rect x={0} y={0} width={W} height={L} {...line} />
-        <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-        <circle cx={cx} cy={L / 2} r={sw * 1.5} fill="white" fillOpacity={0.5} stroke="none" />
-        <line x1={lx} y1={0} x2={rx} y2={0} {...goalLine} />
-        <line x1={lx} y1={L} x2={rx} y2={L} {...goalLine} />
-      </svg>
-    );
-  }
-
+  // All formats: show own defensive half — from center line (top) to own goal (bottom)
   return (
     <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
-      viewBox={`0 ${L / 3} ${W} ${L * 2 / 3}`} preserveAspectRatio="none">
+      viewBox={`0 ${L / 2} ${W} ${L / 2}`} preserveAspectRatio="none">
       <rect x={0} y={0} width={W} height={L} {...line} />
       <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-      <circle cx={cx} cy={L / 2} r={sw * 1.2} fill="white" fillOpacity={0.5} stroke="none" />
-      {/* Top end (opponent goal) */}
-      {R6 != null && <path d={dPath(0, R6, 1)} {...line} />}
-      {R9 != null && <path d={dPath(0, R9, 1)} {...dash} />}
-      {P7 != null && <line x1={cx - 0.5} y1={P7} x2={cx + 0.5} y2={P7} stroke="white" strokeOpacity={0.6} strokeWidth={sw * 2} fill="none" />}
-      <line x1={lx} y1={0} x2={rx} y2={0} {...goalLine} />
-      {/* Bottom end (own goal) */}
+      <circle cx={cx} cy={L / 2} r={sw * 1.5} fill="white" fillOpacity={0.5} stroke="none" />
+      {/* Own goal (bottom) — D-shape, 9m dashed, 7m mark, goal line */}
       {R6 != null && <path d={dPath(L, R6, -1)} {...line} />}
       {R9 != null && <path d={dPath(L, R9, -1)} {...dash} />}
       {P7 != null && <line x1={cx - 0.5} y1={L - P7} x2={cx + 0.5} y2={L - P7} stroke="white" strokeOpacity={0.6} strokeWidth={sw * 2} fill="none" />}
@@ -1042,8 +1030,8 @@ export function MatchLive() {
     // y-verdier i RINK_POSITIONS er i [50,100] (eget halvfelt) → konverter til halvbane-% (0–100)
     ? hockeyRinkPositions.map(p => ({ x: p.x, y: (p.y - 50) * 2 }))
     : isHandball
-    // 4er: full-court view — use raw y%; others: crop to bottom 2/3
-    ? getHandballPositions(handballFormatId).map(p => ({ x: p.x, y: is4er ? p.y : toCroppedY(p.y) }))
+    // all formats: show own defensive half (full-court y 50–100% → view y 0–100%)
+    ? getHandballPositions(handballFormatId).map(p => ({ x: p.x, y: toHandballY(p.y) }))
     : (isBasketball ? getBasketballPositions(match.players_on_field) : getFormationPositions(match.players_on_field, formation))
       .map(p => ({ x: p.x, y: toCroppedY(p.y) }));
 
@@ -1412,10 +1400,9 @@ export function MatchLive() {
             </button>
           )}
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
-            halfLength={isHockey}
-            fullLength={is4er}
+            halfLength={isHockey || isHandball}
             bgColor={
-              isHandball   ? "bg-[#C8A45A]" :
+              isHandball   ? "bg-[#1565C0]" :
               isHockey     ? "bg-[#E8F4FB]" :
               isBasketball ? "bg-[#c8944a]" :
               "bg-green-700"
