@@ -191,6 +191,7 @@ export function MatchSetup() {
   const [formation, setFormation] = useState(DEFAULT_11_FORMATION);
   const [trackGoals, setTrackGoals] = useState(config.trackGoalsDefault);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [formatPickerOpen, setFormatPickerOpen] = useState(false);
 
   const configInitialized = useRef(false);
   const playersInitialized = useRef(false);
@@ -204,6 +205,11 @@ export function MatchSetup() {
       setPeriodLengthSecs(team.default_period_length_seconds ?? c.defaultPeriodLengthSeconds);
       setPeriodCount(team.default_period_count ?? c.defaultPeriodCount);
       setTrackGoals(c.trackGoalsDefault);
+      if (team.sport_id === "handball" && team.default_players_on_field) {
+        const n = team.default_players_on_field;
+        const inferred: HandballFormatId = n <= 4 ? '4er' : n === 5 ? '5er' : n === 6 ? '6er' : '7er';
+        selectHandballFormat(inferred);
+      }
     }
   }, [team]);
 
@@ -342,62 +348,97 @@ export function MatchSetup() {
 
             ) : isHandball ? (
               <div className="space-y-3">
-                <Label>Format</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Format</Label>
+                  {!formatPickerOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setFormatPickerOpen(true)}
+                      className="text-xs font-medium text-ink underline underline-offset-2"
+                    >
+                      Bytt format
+                    </button>
+                  )}
+                </div>
 
-                {/* Progression indicator */}
-                <div className="flex items-center px-1">
-                  {HANDBALL_FORMAT_ORDER.map((fmt, i) => {
-                    const spec = HANDBALL_FORMATS[fmt];
-                    const activeIdx = HANDBALL_FORMAT_ORDER.indexOf(handballFormat);
-                    const isActive = fmt === handballFormat;
-                    const isPast = i < activeIdx;
-                    return (
-                      <div key={fmt} className="flex flex-1 items-center">
-                        <button
-                          type="button"
-                          onClick={() => selectHandballFormat(fmt)}
-                          className="flex flex-col items-center gap-0.5 shrink-0"
-                        >
-                          <div className={cn(
-                            "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
-                            isActive
-                              ? "border-ink bg-ink text-cream"
-                              : isPast
-                              ? "border-ink/50 bg-ink/10 text-ink/60"
-                              : "border-ink/20 bg-cream-dark text-ink-muted",
-                          )}>
-                            {spec.playersOnCourt}
+                {!formatPickerOpen ? (
+                  /* Compact summary */
+                  <div className="flex items-center gap-3 rounded-lg border border-ink/15 bg-cream-dark px-3 py-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream text-sm font-bold shrink-0">
+                      {HANDBALL_FORMATS[handballFormat].playersOnCourt}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight">{HANDBALL_FORMATS[handballFormat].label}</p>
+                      <p className="text-xs text-ink-muted">{HANDBALL_FORMATS[handballFormat].ageGroup}</p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Full picker */
+                  <div className="space-y-3">
+                    {/* Progression indicator */}
+                    <div className="flex items-center px-1">
+                      {HANDBALL_FORMAT_ORDER.map((fmt, i) => {
+                        const spec = HANDBALL_FORMATS[fmt];
+                        const activeIdx = HANDBALL_FORMAT_ORDER.indexOf(handballFormat);
+                        const isActive = fmt === handballFormat;
+                        const isPast = i < activeIdx;
+                        return (
+                          <div key={fmt} className="flex flex-1 items-center">
+                            <button
+                              type="button"
+                              onClick={() => selectHandballFormat(fmt)}
+                              className="flex flex-col items-center gap-0.5 shrink-0"
+                            >
+                              <div className={cn(
+                                "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                                isActive
+                                  ? "border-ink bg-ink text-cream"
+                                  : isPast
+                                  ? "border-ink/50 bg-ink/10 text-ink/60"
+                                  : "border-ink/20 bg-cream-dark text-ink-muted",
+                              )}>
+                                {spec.playersOnCourt}
+                              </div>
+                              <span className="text-[9px] leading-none text-ink-muted whitespace-nowrap">
+                                {spec.ageGroup.split('–')[0]}+
+                              </span>
+                            </button>
+                            {i < HANDBALL_FORMAT_ORDER.length - 1 && (
+                              <div className={cn(
+                                "flex-1 h-px mx-1 transition-colors",
+                                i < activeIdx ? "bg-ink/40" : "bg-ink/15",
+                              )} />
+                            )}
                           </div>
-                          <span className="text-[9px] leading-none text-ink-muted whitespace-nowrap">
-                            {spec.ageGroup.split('–')[0]}+
-                          </span>
-                        </button>
-                        {i < HANDBALL_FORMAT_ORDER.length - 1 && (
-                          <div className={cn(
-                            "flex-1 h-px mx-1 transition-colors",
-                            i < activeIdx ? "bg-ink/40" : "bg-ink/15",
-                          )} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
 
-                {/* Format cards — one per format, full-width */}
-                <div className="flex flex-col gap-2">
-                  {HANDBALL_FORMAT_ORDER.map((fmt) => (
-                    <HandballFormatCard
-                      key={fmt}
-                      formatId={fmt}
-                      active={handballFormat === fmt}
-                      periodLengthSecs={periodLengthSecs}
-                      onSelect={() => selectHandballFormat(fmt)}
-                      onSelectTime={setPeriodLengthSecs}
-                    />
-                  ))}
-                </div>
+                    {/* Format cards — one per format, full-width */}
+                    <div className="flex flex-col gap-2">
+                      {HANDBALL_FORMAT_ORDER.map((fmt) => (
+                        <HandballFormatCard
+                          key={fmt}
+                          formatId={fmt}
+                          active={handballFormat === fmt}
+                          periodLengthSecs={periodLengthSecs}
+                          onSelect={() => selectHandballFormat(fmt)}
+                          onSelectTime={setPeriodLengthSecs}
+                        />
+                      ))}
+                    </div>
 
-                {/* NHF rules overview link — Task 5 */}
+                    <button
+                      type="button"
+                      onClick={() => setFormatPickerOpen(false)}
+                      className="w-full text-center text-xs font-medium text-ink-muted py-1"
+                    >
+                      Skjul ↑
+                    </button>
+                  </div>
+                )}
+
+                {/* NHF rules overview link */}
                 <p className="text-xs text-ink-muted leading-relaxed">
                   Reglene er definert av Norges Håndballforbund.{" "}
                   <a

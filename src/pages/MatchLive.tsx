@@ -1173,21 +1173,28 @@ export function MatchLive() {
       secs: Math.max(0, currentElapsed - (cameOnAt.current[mp.player_id] ?? currentElapsed)),
     }));
 
-    // If there is a GK on the field, credit them with the average outfield time
-    // so that keeper stints don't skew fair-play calculations in future periods.
+    // If a GK is on the field, SET their total to the squad average of all other
+    // players (on-field: accumulated + this period; bench: accumulated total).
+    // This prevents keeper stints from skewing fair-play comparisons.
     const gkEntry = periodSecs.find(({ mp }) => isInGKSlot(mp));
-    const outfieldSecs = gkEntry
-      ? periodSecs.filter(({ mp }) => !isInGKSlot(mp)).map(({ secs }) => secs)
-      : periodSecs.map(({ secs }) => secs);
-    const avgOutfieldSecs = outfieldSecs.length > 0
-      ? Math.round(outfieldSecs.reduce((a, b) => a + b, 0) / outfieldSecs.length)
-      : 0;
+    const keeperTotal = (() => {
+      if (!gkEntry) return 0;
+      const nonKeeperTotals = players
+        .filter((p) => p.player_id !== gkEntry.mp.player_id)
+        .map((p) => {
+          const entry = periodSecs.find((e) => e.mp.player_id === p.player_id);
+          return p.total_play_seconds + (entry ? entry.secs : 0);
+        });
+      return nonKeeperTotals.length > 0
+        ? Math.round(nonKeeperTotals.reduce((a, b) => a + b, 0) / nonKeeperTotals.length)
+        : 0;
+    })();
 
     const fieldPlayerFinalSeconds = periodSecs.map(({ mp, secs }) => ({
       player_id: mp.player_id,
-      total_play_seconds: mp.total_play_seconds + (
-        gkEntry && mp.player_id === gkEntry.mp.player_id ? avgOutfieldSecs : secs
-      ),
+      total_play_seconds: gkEntry && mp.player_id === gkEntry.mp.player_id
+        ? keeperTotal
+        : mp.total_play_seconds + secs,
     }));
 
     // Finalise zone tracking for all field players
