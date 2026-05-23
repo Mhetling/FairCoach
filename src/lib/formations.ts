@@ -96,6 +96,18 @@ import {
   type CourtPosition,
 } from "@/types/handball-formats";
 
+import { BASKETBALL_FORMATS, type BasketballFormatId } from "@/types/basketball-formats";
+
+export function resolveBasketballFormatId(
+  formation: string | null,
+  playersOnCourt: number,
+): BasketballFormatId {
+  if (formation && formation in BASKETBALL_FORMATS) return formation as BasketballFormatId;
+  if (playersOnCourt <= 3) return '3x3';
+  if (playersOnCourt === 4) return 'easybasket';
+  return '5v5';
+}
+
 export type { CourtPosition };
 
 export function resolveHandballFormatId(

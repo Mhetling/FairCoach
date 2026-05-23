@@ -40,12 +40,13 @@ import {
 import type { ZoneTime } from "@/types/database";
 import { useTeam } from "@/hooks/useTeams";
 import {
-  PITCH_SPECS, BASKETBALL_COURT_SPEC, getHandballCourtSpec,
+  PITCH_SPECS, getHandballCourtSpec, getBasketballCourtSpec,
   type PitchSpec, type BasketballCourtSpec,
 } from "@/lib/pitchSpecs";
 import {
   ELEVEN_FORMATIONS, getFormationPositions, getHandballPositions,
   getHandballCourtPositions, resolveHandballFormatId, getBasketballPositions,
+  resolveBasketballFormatId,
 } from "@/lib/formations";
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
@@ -249,20 +250,21 @@ function HandballCourtMarkings({ formatId }: { formatId: string }) {
 
 function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const { width: W, length: L, threePointRadius: TPR, keyWidth: KW, keyDepth: KD,
-    basketDistance: BD, centerCircleRadius: CCR, freeThrowRadius: FTR } = spec;
+    basketDistance: BD, centerCircleRadius: CCR, freeThrowRadius: FTR, halfCourt: HC } = spec;
   const cx = W / 2;
   const sw = W / 50;
   const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.45, strokeWidth: sw };
   const dot  = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
   const keyFill = { fill: "white", fillOpacity: 0.06 };
 
-  function threePointPath(basketY: number, dir: 1 | -1) {
+  function threePointPath(basketY: number, dir: 1 | -1): string {
+    if (TPR == null) return "";
     const cornerX = 0.9;
     const dx = cx - cornerX;
     const arcY = basketY + dir * Math.sqrt(Math.max(0, TPR * TPR - dx * dx));
     const sweep = dir === 1 ? 1 : 0;
     return [
-      `M ${cornerX},${basketY + dir * 0}`,
+      `M ${cornerX},${basketY}`,
       `L ${cornerX},${arcY}`,
       `A ${TPR},${TPR} 0 0,${sweep} ${W - cornerX},${arcY}`,
       `L ${W - cornerX},${basketY}`,
@@ -284,38 +286,37 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
       viewBox={`0 ${L / 3} ${W} ${L * 2 / 3}`} preserveAspectRatio="none">
       {/* Outer boundary */}
       <rect x={0} y={0} width={W} height={L} {...line} />
-      {/* Centre line and circle */}
-      <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-      <circle cx={cx} cy={L / 2} r={CCR} {...line} />
-      <circle cx={cx} cy={L / 2} r={sw * 0.8} {...dot} />
 
-      {/* Top end */}
-      <rect x={top.kx} y={0} width={KW} height={KD} {...keyFill} />
-      <rect x={top.kx} y={0} width={KW} height={KD} {...line} />
-      <path d={`M ${top.kx},${top.ftY} A ${FTR},${FTR} 0 0,${top.ftSweep} ${top.kx + KW},${top.ftY}`} {...line} />
-      {/* Restricted area under top basket */}
-      <path d={`M ${cx - 1.25},${BD} A 1.25,1.25 0 0,1 ${cx + 1.25},${BD}`}
-        {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
-      {/* Basket */}
-      <circle cx={cx} cy={BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
-      <circle cx={cx} cy={BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
-      {/* Backboard */}
-      <line x1={cx - 1.2} y1={BD + 0.2} x2={cx + 1.2} y2={BD + 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
-      <path d={threePointPath(0, 1)} {...line} />
+      {/* Centre line and circle — omitted for half-court (3x3) */}
+      {!HC && <>
+        <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
+        <circle cx={cx} cy={L / 2} r={CCR} {...line} />
+        <circle cx={cx} cy={L / 2} r={sw * 0.8} {...dot} />
+      </>}
 
-      {/* Bottom end */}
+      {/* Top end — omitted for half-court (3x3) */}
+      {!HC && <>
+        <rect x={top.kx} y={0} width={KW} height={KD} {...keyFill} />
+        <rect x={top.kx} y={0} width={KW} height={KD} {...line} />
+        <path d={`M ${top.kx},${top.ftY} A ${FTR},${FTR} 0 0,${top.ftSweep} ${top.kx + KW},${top.ftY}`} {...line} />
+        <path d={`M ${cx - 1.25},${BD} A 1.25,1.25 0 0,1 ${cx + 1.25},${BD}`}
+          {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
+        <circle cx={cx} cy={BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
+        <circle cx={cx} cy={BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
+        <line x1={cx - 1.2} y1={BD + 0.2} x2={cx + 1.2} y2={BD + 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
+        {TPR != null && <path d={threePointPath(0, 1)} {...line} />}
+      </>}
+
+      {/* Bottom end — always shown */}
       <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...keyFill} />
       <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...line} />
       <path d={`M ${bot.kx},${bot.ftY} A ${FTR},${FTR} 0 0,${bot.ftSweep} ${bot.kx + KW},${bot.ftY}`} {...line} />
-      {/* Restricted area under bottom basket */}
       <path d={`M ${cx - 1.25},${L - BD} A 1.25,1.25 0 0,0 ${cx + 1.25},${L - BD}`}
         {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
-      {/* Basket */}
       <circle cx={cx} cy={L - BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
       <circle cx={cx} cy={L - BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
-      {/* Backboard */}
       <line x1={cx - 1.2} y1={L - BD - 0.2} x2={cx + 1.2} y2={L - BD - 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
-      <path d={threePointPath(L, -1)} {...line} />
+      {TPR != null && <path d={threePointPath(L, -1)} {...line} />}
     </svg>
   );
 }
@@ -1015,6 +1016,10 @@ export function MatchLive() {
     : '7er';
   const is4er = isHandball && handballFormatId === '4er';
 
+  const basketballFormatId = isBasketball
+    ? resolveBasketballFormatId(match.formation, match.players_on_field)
+    : '5v5';
+
   // Hockey: utled format fra match.formation (bakoverkompatibel)
   const hockeyFormat: HockeyFormat = isHockey
     ? resolveHockeyFormat(match.formation, match.players_on_field)
@@ -1037,7 +1042,7 @@ export function MatchLive() {
   const pitchSpec =
     isHandball   ? getHandballCourtSpec(handballFormatId) :
     isHockey     ? hockeyDisplaySpec :
-    isBasketball ? BASKETBALL_COURT_SPEC :
+    isBasketball ? getBasketballCourtSpec(basketballFormatId) :
     (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
 
   const isEleven = !isHandball && !isHockey && !isBasketball && match.players_on_field === 11;
@@ -1415,7 +1420,7 @@ export function MatchLive() {
             }>
             {isHandball   ? <HandballCourtMarkings formatId={handballFormatId} /> :
              isHockey     ? <HockeyRinkHalfContent format={hockeyFormat} /> :
-             isBasketball ? <BasketballCourtMarkings spec={BASKETBALL_COURT_SPEC} /> :
+             isBasketball ? <BasketballCourtMarkings spec={getBasketballCourtSpec(basketballFormatId)} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }
             {is4er && (

@@ -20,6 +20,10 @@ import {
   HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER, HANDBALL_RULES_OVERVIEW,
   type HandballFormatId,
 } from "@/types/handball-formats";
+import {
+  BASKETBALL_FORMATS, BASKETBALL_FORMAT_ORDER, BASKETBALL_RULES_OVERVIEW,
+  type BasketballFormatId,
+} from "@/types/basketball-formats";
 import { cn } from "@/lib/utils";
 import type { SportId } from "@/types/database";
 
@@ -153,6 +157,111 @@ function HandballFormatCard({
   );
 }
 
+// ─── Basketball format card ───────────────────────────────────────────────────
+
+function BasketballFormatCard({
+  formatId, active, periodLengthSecs, onSelect, onSelectTime,
+}: {
+  formatId: BasketballFormatId;
+  active: boolean;
+  periodLengthSecs: number;
+  onSelect: () => void;
+  onSelectTime: (secs: number) => void;
+}) {
+  const spec = BASKETBALL_FORMATS[formatId];
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full flex flex-col gap-2.5 rounded-xl border-2 p-4 text-left transition-colors",
+        active ? "border-ink bg-ink/5" : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold text-ink leading-snug">{spec.label}</div>
+          <div className="text-xs text-ink-muted mt-0.5">{spec.subtitle}</div>
+        </div>
+        <span className={cn(
+          "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+          active ? "border-ink/30 bg-ink/10 text-ink" : "border-ink/15 bg-transparent text-ink-muted",
+        )}>
+          {spec.ageGroup}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.playersOnCourt}v{spec.playersOnCourt}
+        </span>
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.periodCount}×{spec.periodLength} min
+        </span>
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.courtLength}×{spec.courtWidth} m
+        </span>
+        {spec.id === 'easybasket' && (
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+            Ingen poengføring
+          </span>
+        )}
+      </div>
+
+      {/* 5v5 quarter-length sub-picker */}
+      {active && formatId === '5v5' && (
+        <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          <p className="text-xs font-medium text-ink-muted">Velg kvartertid</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([8, 10] as const).map((mins) => (
+              <button
+                key={mins}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSelectTime(mins * 60); }}
+                className={cn(
+                  "rounded-lg border py-2.5 text-sm font-medium transition-colors leading-tight",
+                  periodLengthSecs === mins * 60
+                    ? "border-ink bg-ink text-cream"
+                    : "border-ink/20 bg-cream text-ink hover:bg-ink/5",
+                )}
+              >
+                4×{mins} min
+                <div className="text-[10px] font-normal opacity-60 mt-0.5">
+                  {mins === 8 ? "U14–U16" : "U18 og eldre"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-ink-muted leading-relaxed">{spec.note}</p>
+
+      <a
+        href={spec.rulesUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 transition-opacity",
+          active ? "text-ink" : "text-ink-muted",
+        )}
+      >
+        Se NBBFs offisielle regler →
+      </a>
+    </button>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MatchSetup() {
@@ -166,12 +275,15 @@ export function MatchSetup() {
   const config = getSportConfig(sportId);
   const isHockey = sportId === "hockey";
   const isHandball = sportId === "handball";
+  const isBasketball = sportId === "basketball";
 
   const DEFAULT_HANDBALL: HandballFormatId = "7er";
+  const DEFAULT_BASKETBALL: BasketballFormatId = "5v5";
 
   const [opponent, setOpponent] = useState("");
   const [hockeyFormat, setHockeyFormat] = useState<HockeyFormat>("5v5-full");
   const [handballFormat, setHandballFormat] = useState<HandballFormatId>(DEFAULT_HANDBALL);
+  const [basketballFormat, setBasketballFormat] = useState<BasketballFormatId>(DEFAULT_BASKETBALL);
   const [playersOnField, setPlayersOnField] = useState(
     isHockey ? RINK_SPECS["5v5-full"].playersOnField
     : isHandball ? HANDBALL_FORMATS[DEFAULT_HANDBALL].playersOnCourt
@@ -192,6 +304,7 @@ export function MatchSetup() {
   const [trackGoals, setTrackGoals] = useState(config.trackGoalsDefault);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
+  const [basketballPickerOpen, setBasketballPickerOpen] = useState(false);
 
   const configInitialized = useRef(false);
   const playersInitialized = useRef(false);
@@ -209,6 +322,11 @@ export function MatchSetup() {
         const n = team.default_players_on_field;
         const inferred: HandballFormatId = n <= 4 ? '4er' : n === 5 ? '5er' : n === 6 ? '6er' : '7er';
         selectHandballFormat(inferred);
+      }
+      if (team.sport_id === "basketball" && team.default_players_on_field) {
+        const n = team.default_players_on_field;
+        const inferred: BasketballFormatId = n <= 3 ? '3x3' : n === 4 ? 'easybasket' : '5v5';
+        selectBasketballFormat(inferred);
       }
     }
   }, [team]);
@@ -246,6 +364,16 @@ export function MatchSetup() {
     setPeriodCount(spec.periodCount);
   }
 
+  function selectBasketballFormat(fmt: BasketballFormatId) {
+    setBasketballFormat(fmt);
+    const spec = BASKETBALL_FORMATS[fmt];
+    setPlayersOnField(spec.playersOnCourt);
+    // 5v5 defaults to 4×10 min; sub-picker in card can change period length
+    const defaultMins = fmt === '5v5' ? 10 : spec.periodLength;
+    setPeriodLengthSecs(defaultMins * 60);
+    setPeriodCount(spec.periodCount);
+  }
+
   function togglePlayer(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -267,10 +395,15 @@ export function MatchSetup() {
         opponent: opponent.trim() || null,
         players_on_field: isHockey ? RINK_SPECS[hockeyFormat].playersOnField
           : isHandball ? HANDBALL_FORMATS[handballFormat].playersOnCourt
+          : isBasketball ? BASKETBALL_FORMATS[basketballFormat].playersOnCourt
           : playersOnField,
         period_length_seconds: effectivePeriodSecs,
         period_count: periodCount,
-        formation: isSoccer11 ? formation : isHockey ? hockeyFormat : isHandball ? handballFormat : null,
+        formation: isSoccer11 ? formation
+          : isHockey ? hockeyFormat
+          : isHandball ? handballFormat
+          : isBasketball ? basketballFormat
+          : null,
         track_goals: trackGoals,
         selected_player_ids: Array.from(selectedIds),
       });
@@ -452,6 +585,108 @@ export function MatchSetup() {
                 </p>
               </div>
 
+            ) : isBasketball ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Format</Label>
+                  {!basketballPickerOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setBasketballPickerOpen(true)}
+                      className="text-xs font-medium text-ink underline underline-offset-2"
+                    >
+                      Bytt format
+                    </button>
+                  )}
+                </div>
+
+                {!basketballPickerOpen ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-ink/15 bg-cream-dark px-3 py-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream text-sm font-bold shrink-0">
+                      {BASKETBALL_FORMATS[basketballFormat].playersOnCourt}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight">{BASKETBALL_FORMATS[basketballFormat].label}</p>
+                      <p className="text-xs text-ink-muted">{BASKETBALL_FORMATS[basketballFormat].ageGroup}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Progression indicator */}
+                    <div className="flex items-center px-1">
+                      {BASKETBALL_FORMAT_ORDER.map((fmt, i) => {
+                        const spec = BASKETBALL_FORMATS[fmt];
+                        const activeIdx = BASKETBALL_FORMAT_ORDER.indexOf(basketballFormat);
+                        const isActive = fmt === basketballFormat;
+                        const isPast = i < activeIdx;
+                        return (
+                          <div key={fmt} className="flex flex-1 items-center">
+                            <button
+                              type="button"
+                              onClick={() => selectBasketballFormat(fmt)}
+                              className="flex flex-col items-center gap-0.5 shrink-0"
+                            >
+                              <div className={cn(
+                                "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                                isActive
+                                  ? "border-ink bg-ink text-cream"
+                                  : isPast
+                                  ? "border-ink/50 bg-ink/10 text-ink/60"
+                                  : "border-ink/20 bg-cream-dark text-ink-muted",
+                              )}>
+                                {spec.playersOnCourt}
+                              </div>
+                              <span className="text-[9px] leading-none text-ink-muted whitespace-nowrap">
+                                {spec.ageGroup.split(' ')[0]}
+                              </span>
+                            </button>
+                            {i < BASKETBALL_FORMAT_ORDER.length - 1 && (
+                              <div className={cn(
+                                "flex-1 h-px mx-1 transition-colors",
+                                i < activeIdx ? "bg-ink/40" : "bg-ink/15",
+                              )} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {BASKETBALL_FORMAT_ORDER.map((fmt) => (
+                        <BasketballFormatCard
+                          key={fmt}
+                          formatId={fmt}
+                          active={basketballFormat === fmt}
+                          periodLengthSecs={periodLengthSecs}
+                          onSelect={() => selectBasketballFormat(fmt)}
+                          onSelectTime={setPeriodLengthSecs}
+                        />
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setBasketballPickerOpen(false)}
+                      className="w-full text-center text-xs font-medium text-ink-muted py-1"
+                    >
+                      Skjul ↑
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-xs text-ink-muted leading-relaxed">
+                  Reglene er definert av Norges Basketballforbund.{" "}
+                  <a
+                    href={BASKETBALL_RULES_OVERVIEW}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-ink underline underline-offset-2"
+                  >
+                    Se alle bestemmelser →
+                  </a>
+                </p>
+              </div>
+
             ) : (
               <div className="space-y-2">
                 <Label>Spillere på banen</Label>
@@ -465,8 +700,8 @@ export function MatchSetup() {
               </div>
             )}
 
-            {/* Period length — hidden for handball (card handles it) */}
-            {!isHandball && (
+            {/* Period length — hidden for handball and basketball (cards handle it) */}
+            {!isHandball && !isBasketball && (
               <>
                 <div className="space-y-2">
                   <Label>Omgangslengde</Label>

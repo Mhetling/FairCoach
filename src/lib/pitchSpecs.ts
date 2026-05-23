@@ -67,24 +67,38 @@ export const HOCKEY_RINK_SPEC: HockeyRinkSpec = {
 export interface BasketballCourtSpec {
   width: number;
   length: number;
-  threePointRadius: number;
+  threePointRadius: number | null;   // null = no three-point line (EasyBasket)
   keyWidth: number;
   keyDepth: number;
   basketDistance: number;    // from baseline to basket centre
   centerCircleRadius: number;
   freeThrowRadius: number;
+  halfCourt: boolean;        // true = 3x3 (single basket, no centre line)
 }
 
-export const BASKETBALL_COURT_SPEC: BasketballCourtSpec = {
-  width: 15,
-  length: 28,
-  threePointRadius: 6.75,
-  keyWidth: 4.9,
-  keyDepth: 5.8,
-  basketDistance: 1.575,
-  centerCircleRadius: 1.8,
-  freeThrowRadius: 1.8,
+const BASKETBALL_COURT_SPECS: Record<string, BasketballCourtSpec> = {
+  'easybasket': {
+    width: 13, length: 22, threePointRadius: null,
+    keyWidth: 3.6, keyDepth: 4.6, basketDistance: 1.2,
+    centerCircleRadius: 1.5, freeThrowRadius: 1.5, halfCourt: false,
+  },
+  '3x3': {
+    width: 11, length: 15, threePointRadius: 6.75,
+    keyWidth: 4.9, keyDepth: 5.8, basketDistance: 1.575,
+    centerCircleRadius: 1.8, freeThrowRadius: 1.8, halfCourt: true,
+  },
+  '5v5': {
+    width: 15, length: 28, threePointRadius: 6.75,
+    keyWidth: 4.9, keyDepth: 5.8, basketDistance: 1.575,
+    centerCircleRadius: 1.8, freeThrowRadius: 1.8, halfCourt: false,
+  },
 };
+
+export const BASKETBALL_COURT_SPEC: BasketballCourtSpec = BASKETBALL_COURT_SPECS['5v5'];
+
+export function getBasketballCourtSpec(formatId: string): BasketballCourtSpec {
+  return BASKETBALL_COURT_SPECS[formatId] ?? BASKETBALL_COURT_SPECS['5v5'];
+}
 
 // ─── Soccer pitches ───────────────────────────────────────────────────────────
 
