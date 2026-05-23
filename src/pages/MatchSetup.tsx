@@ -17,8 +17,9 @@ import {
   RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
 } from "@/lib/hockeyRinks";
 import {
-  HANDBALL_FORMAT_SPECS, HANDBALL_FORMATS, type HandballFormat,
-} from "@/lib/handballFormats";
+  HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER, HANDBALL_RULES_OVERVIEW,
+  type HandballFormatId,
+} from "@/types/handball-formats";
 import { cn } from "@/lib/utils";
 import type { SportId } from "@/types/database";
 
@@ -43,6 +44,117 @@ function OptionButton({
   );
 }
 
+// ─── Handball format card ─────────────────────────────────────────────────────
+
+function HandballFormatCard({
+  formatId, active, periodLengthSecs, onSelect, onSelectTime,
+}: {
+  formatId: HandballFormatId;
+  active: boolean;
+  periodLengthSecs: number;
+  onSelect: () => void;
+  onSelectTime: (secs: number) => void;
+}) {
+  const spec = HANDBALL_FORMATS[formatId];
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full flex flex-col gap-2.5 rounded-xl border-2 p-4 text-left transition-colors",
+        active ? "border-ink bg-ink/5" : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+      )}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold text-ink leading-snug">{spec.label}</div>
+          <div className="text-xs text-ink-muted mt-0.5">{spec.subtitle}</div>
+        </div>
+        <span className={cn(
+          "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+          active ? "border-ink/30 bg-ink/10 text-ink" : "border-ink/15 bg-transparent text-ink-muted",
+        )}>
+          {spec.ageGroup}
+        </span>
+      </div>
+
+      {/* Chips */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.playersOnCourt} på banen
+        </span>
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.periodCount}×{spec.periodLength} min
+        </span>
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium",
+          active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
+        )}>
+          {spec.courtLength}×{spec.courtWidth} m
+        </span>
+        {!spec.hasGoalkeeper && (
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+            Ingen fast keeper
+          </span>
+        )}
+      </div>
+
+      {/* 7er time sub-picker — only when selected */}
+      {active && formatId === '7er' && (
+        <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          <p className="text-xs font-medium text-ink-muted">Velg spilletid</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([25, 30] as const).map((mins) => (
+              <button
+                key={mins}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSelectTime(mins * 60); }}
+                className={cn(
+                  "rounded-lg border py-2.5 text-sm font-medium transition-colors leading-tight",
+                  periodLengthSecs === mins * 60
+                    ? "border-ink bg-ink text-cream"
+                    : "border-ink/20 bg-cream text-ink hover:bg-ink/5",
+                )}
+              >
+                2×{mins} min
+                <div className="text-[10px] font-normal opacity-60 mt-0.5">
+                  {mins === 25 ? "12–16 år" : "16 år og eldre"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Note */}
+      <p className="text-xs text-ink-muted leading-relaxed">{spec.note}</p>
+
+      {/* NHF rules link */}
+      <a
+        href={spec.rulesUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 transition-opacity",
+          active ? "text-ink" : "text-ink-muted",
+        )}
+      >
+        Se NHFs offisielle regler →
+      </a>
+    </button>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function MatchSetup() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
@@ -55,23 +167,25 @@ export function MatchSetup() {
   const isHockey = sportId === "hockey";
   const isHandball = sportId === "handball";
 
+  const DEFAULT_HANDBALL: HandballFormatId = "7er";
+
   const [opponent, setOpponent] = useState("");
   const [hockeyFormat, setHockeyFormat] = useState<HockeyFormat>("5v5-full");
-  const [handballFormat, setHandballFormat] = useState<HandballFormat>("7v7");
+  const [handballFormat, setHandballFormat] = useState<HandballFormatId>(DEFAULT_HANDBALL);
   const [playersOnField, setPlayersOnField] = useState(
     isHockey ? RINK_SPECS["5v5-full"].playersOnField
-    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].playersOnField
+    : isHandball ? HANDBALL_FORMATS[DEFAULT_HANDBALL].playersOnCourt
     : config.defaultPlayersOnField,
   );
   const [periodLengthSecs, setPeriodLengthSecs] = useState(
     isHockey ? FORMAT_DEFAULTS["5v5-full"].periodLengthSeconds
-    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].periodLengthSeconds
+    : isHandball ? HANDBALL_FORMATS[DEFAULT_HANDBALL].periodLength * 60
     : config.defaultPeriodLengthSeconds,
   );
   const [customMinutes, setCustomMinutes] = useState("");
   const [periodCount, setPeriodCount] = useState(
     isHockey ? FORMAT_DEFAULTS["5v5-full"].periodCount
-    : isHandball ? HANDBALL_FORMAT_SPECS["7v7"].periodCount
+    : isHandball ? HANDBALL_FORMATS[DEFAULT_HANDBALL].periodCount
     : config.defaultPeriodCount,
   );
   const [formation, setFormation] = useState(DEFAULT_11_FORMATION);
@@ -116,11 +230,13 @@ export function MatchSetup() {
     setPeriodCount(FORMAT_DEFAULTS[fmt].periodCount);
   }
 
-  function selectHandballFormat(fmt: HandballFormat) {
+  function selectHandballFormat(fmt: HandballFormatId) {
     setHandballFormat(fmt);
-    const spec = HANDBALL_FORMAT_SPECS[fmt];
-    setPlayersOnField(spec.playersOnField);
-    setPeriodLengthSecs(spec.periodLengthSeconds);
+    const spec = HANDBALL_FORMATS[fmt];
+    setPlayersOnField(spec.playersOnCourt);
+    // 7er defaults to 2×30 unless already showing a 7er-valid time
+    const defaultMins = fmt === '7er' ? 30 : spec.periodLength;
+    setPeriodLengthSecs(defaultMins * 60);
     setPeriodCount(spec.periodCount);
   }
 
@@ -144,7 +260,7 @@ export function MatchSetup() {
         sport_id: sportId,
         opponent: opponent.trim() || null,
         players_on_field: isHockey ? RINK_SPECS[hockeyFormat].playersOnField
-          : isHandball ? HANDBALL_FORMAT_SPECS[handballFormat].playersOnField
+          : isHandball ? HANDBALL_FORMATS[handballFormat].playersOnCourt
           : playersOnField,
         period_length_seconds: effectivePeriodSecs,
         period_count: periodCount,
@@ -223,48 +339,78 @@ export function MatchSetup() {
                   })}
                 </div>
               </div>
+
             ) : isHandball ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Format</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {HANDBALL_FORMATS.map((fmt) => {
-                    const spec = HANDBALL_FORMAT_SPECS[fmt];
-                    const active = handballFormat === fmt;
+
+                {/* Progression indicator */}
+                <div className="flex items-center px-1">
+                  {HANDBALL_FORMAT_ORDER.map((fmt, i) => {
+                    const spec = HANDBALL_FORMATS[fmt];
+                    const activeIdx = HANDBALL_FORMAT_ORDER.indexOf(handballFormat);
+                    const isActive = fmt === handballFormat;
+                    const isPast = i < activeIdx;
                     return (
-                      <button
-                        key={fmt}
-                        type="button"
-                        onClick={() => selectHandballFormat(fmt)}
-                        className={cn(
-                          "flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-colors",
-                          active
-                            ? "border-ink bg-ink/5"
-                            : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+                      <div key={fmt} className="flex flex-1 items-center">
+                        <button
+                          type="button"
+                          onClick={() => selectHandballFormat(fmt)}
+                          className="flex flex-col items-center gap-0.5 shrink-0"
+                        >
+                          <div className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+                            isActive
+                              ? "border-ink bg-ink text-cream"
+                              : isPast
+                              ? "border-ink/50 bg-ink/10 text-ink/60"
+                              : "border-ink/20 bg-cream-dark text-ink-muted",
+                          )}>
+                            {spec.playersOnCourt}
+                          </div>
+                          <span className="text-[9px] leading-none text-ink-muted whitespace-nowrap">
+                            {spec.ageGroup.split('–')[0]}+
+                          </span>
+                        </button>
+                        {i < HANDBALL_FORMAT_ORDER.length - 1 && (
+                          <div className={cn(
+                            "flex-1 h-px mx-1 transition-colors",
+                            i < activeIdx ? "bg-ink/40" : "bg-ink/15",
+                          )} />
                         )}
-                      >
-                        <div className="text-sm font-semibold text-ink leading-snug">{spec.label}</div>
-                        <div className="text-xs text-ink-muted">{spec.ageGroup}</div>
-                        <div className="mt-1 text-xs font-medium text-ink">{spec.tagline}</div>
-                        <div className="text-xs text-ink-muted leading-snug">{spec.description}</div>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          <span className={cn(
-                            "rounded px-1.5 py-0.5 text-xs font-medium",
-                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
-                          )}>
-                            {spec.playersOnField} spillere
-                          </span>
-                          <span className={cn(
-                            "rounded px-1.5 py-0.5 text-xs font-medium",
-                            active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
-                          )}>
-                            {spec.periodCount}×{spec.periodLengthSeconds / 60} min
-                          </span>
-                        </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
+
+                {/* Format cards — one per format, full-width */}
+                <div className="flex flex-col gap-2">
+                  {HANDBALL_FORMAT_ORDER.map((fmt) => (
+                    <HandballFormatCard
+                      key={fmt}
+                      formatId={fmt}
+                      active={handballFormat === fmt}
+                      periodLengthSecs={periodLengthSecs}
+                      onSelect={() => selectHandballFormat(fmt)}
+                      onSelectTime={setPeriodLengthSecs}
+                    />
+                  ))}
+                </div>
+
+                {/* NHF rules overview link — Task 5 */}
+                <p className="text-xs text-ink-muted leading-relaxed">
+                  Reglene er definert av Norges Håndballforbund.{" "}
+                  <a
+                    href={HANDBALL_RULES_OVERVIEW}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-ink underline underline-offset-2"
+                  >
+                    Se alle bestemmelser →
+                  </a>
+                </p>
               </div>
+
             ) : (
               <div className="space-y-2">
                 <Label>Spillere på banen</Label>
@@ -278,45 +424,50 @@ export function MatchSetup() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Omgangslengde</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {config.periodLengthOptions.map((o) => (
-                  <OptionButton
-                    key={o.seconds}
-                    active={periodLengthSecs === o.seconds}
-                    onClick={() => setPeriodLengthSecs(o.seconds)}
-                  >
-                    {o.label}
-                  </OptionButton>
-                ))}
-              </div>
-              {isCustomLength && (
-                <div className="flex items-center gap-2 pt-1">
-                  <Input
-                    autoFocus
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Antall minutter"
-                    value={customMinutes}
-                    onChange={(e) => setCustomMinutes(e.target.value.replace(/[^0-9]/g, ""))}
-                    className="max-w-[160px]"
-                  />
-                  <span className="text-sm text-ink-muted">min</span>
+            {/* Period length — hidden for handball (card handles it) */}
+            {!isHandball && (
+              <>
+                <div className="space-y-2">
+                  <Label>Omgangslengde</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {config.periodLengthOptions.map((o) => (
+                      <OptionButton
+                        key={o.seconds}
+                        active={periodLengthSecs === o.seconds}
+                        onClick={() => setPeriodLengthSecs(o.seconds)}
+                      >
+                        {o.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                  {isCustomLength && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Input
+                        autoFocus
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Antall minutter"
+                        value={customMinutes}
+                        onChange={(e) => setCustomMinutes(e.target.value.replace(/[^0-9]/g, ""))}
+                        className="max-w-[160px]"
+                      />
+                      <span className="text-sm text-ink-muted">min</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label>Antall omganger</Label>
-              <div className={cn("grid gap-2", config.periodCountOptions.length === 2 ? "grid-cols-2" : "grid-cols-4")}>
-                {config.periodCountOptions.map((n) => (
-                  <OptionButton key={n} active={periodCount === n} onClick={() => setPeriodCount(n)}>
-                    {n === 1 ? "1 omgang" : `${n} omganger`}
-                  </OptionButton>
-                ))}
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label>Antall omganger</Label>
+                  <div className={cn("grid gap-2", config.periodCountOptions.length === 2 ? "grid-cols-2" : "grid-cols-4")}>
+                    {config.periodCountOptions.map((n) => (
+                      <OptionButton key={n} active={periodCount === n} onClick={() => setPeriodCount(n)}>
+                        {n === 1 ? "1 omgang" : `${n} omganger`}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Formation picker — 11er soccer only */}
             {isSoccer11 && (

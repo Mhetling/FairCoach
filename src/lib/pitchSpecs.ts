@@ -16,22 +16,27 @@ export interface PitchSpec {
 // ─── Handball court ───────────────────────────────────────────────────────────
 
 export interface HandballCourtSpec {
-  width: number;          // 20 m
-  length: number;         // 40 m
-  goalWidth: number;      // 3 m
-  goalAreaRadius: number; // 6 m (D-line)
-  freeThrowRadius: number; // 9 m (dotted D-line)
-  penaltyDistance: number; // 7 m
+  width: number;
+  length: number;
+  goalWidth: number;
+  goalAreaRadius: number | null;   // null = no fixed goal area (4er, no goalkeeper)
+  freeThrowRadius: number | null;  // null = no free-throw line
+  penaltyDistance: number | null;  // null = no 7m penalty
 }
 
-export const HANDBALL_COURT_SPEC: HandballCourtSpec = {
-  width: 20,
-  length: 40,
-  goalWidth: 3,
-  goalAreaRadius: 6,
-  freeThrowRadius: 9,
-  penaltyDistance: 7,
+const HANDBALL_COURT_SPECS: Record<string, HandballCourtSpec> = {
+  '4er': { width: 12,  length: 20, goalWidth: 2.4, goalAreaRadius: null, freeThrowRadius: null, penaltyDistance: null },
+  '5er': { width: 20,  length: 26, goalWidth: 3,   goalAreaRadius: 6,    freeThrowRadius: 9,    penaltyDistance: 7    },
+  '6er': { width: 20,  length: 40, goalWidth: 3,   goalAreaRadius: 6,    freeThrowRadius: 9,    penaltyDistance: 7    },
+  '7er': { width: 20,  length: 40, goalWidth: 3,   goalAreaRadius: 6,    freeThrowRadius: 9,    penaltyDistance: 7    },
 };
+
+// Keep a default spec so callers that don't care about format still work
+export const HANDBALL_COURT_SPEC: HandballCourtSpec = HANDBALL_COURT_SPECS['7er'];
+
+export function getHandballCourtSpec(formatId: string): HandballCourtSpec {
+  return HANDBALL_COURT_SPECS[formatId] ?? HANDBALL_COURT_SPECS['7er'];
+}
 
 // ─── Hockey rink ──────────────────────────────────────────────────────────────
 

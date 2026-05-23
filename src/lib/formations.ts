@@ -89,37 +89,32 @@ export const ELEVEN_FORMATIONS: Formation[] = [
 export const DEFAULT_11_FORMATION = "4-4-2";
 
 // ─── Handball positions ───────────────────────────────────────────────────────
-// x/y are percentages from top-left; y=0 = opponent's goal end, y=100 = own GK end
+// Delegated to src/types/handball-formats.ts (NHF-accurate data).
 
-// Field players form a single curved arc (parabola: y = 58 + 0.007*(x-50)^2).
-// GK is alone at own goal. No player in front of or behind the arc.
-// x values kept in [10, 90] so 66px tokens don't clip on a 375px mobile screen.
-// y follows a parabola y = 58 + 0.007*(x-50)^2 so all players sit on one curved arc.
-const HANDBALL_POSITIONS: Record<number, { x: number; y: number }[]> = {
-  3: [
-    { x: 50, y: 88 },                              // Spillende keeper
-    { x: 25, y: 65 }, { x: 75, y: 65 },
-  ],
-  4: [
-    { x: 50, y: 88 },                              // GK
-    { x: 20, y: 64 }, { x: 50, y: 58 }, { x: 80, y: 64 },
-  ],
-  5: [
-    { x: 50, y: 88 },                              // GK
-    { x: 10, y: 69 }, { x: 37, y: 59 }, { x: 63, y: 59 }, { x: 90, y: 69 },
-  ],
-  6: [
-    { x: 50, y: 88 },                              // GK
-    { x: 10, y: 69 }, { x: 30, y: 61 }, { x: 50, y: 58 }, { x: 70, y: 61 }, { x: 90, y: 69 },
-  ],
-  7: [
-    { x: 50, y: 88 },                              // GK
-    { x: 10, y: 69 }, { x: 26, y: 62 }, { x: 42, y: 59 }, { x: 58, y: 59 }, { x: 74, y: 62 }, { x: 90, y: 69 },
-  ],
-};
+import {
+  HANDBALL_COURT_POSITIONS, HANDBALL_FORMATS,
+  type CourtPosition,
+} from "@/types/handball-formats";
 
-export function getHandballPositions(playersOnField: number): { x: number; y: number }[] {
-  return HANDBALL_POSITIONS[playersOnField] ?? getFormationPositions(playersOnField, null);
+export type { CourtPosition };
+
+export function resolveHandballFormatId(
+  formation: string | null,
+  playersOnCourt: number,
+): string {
+  if (formation && formation in HANDBALL_FORMATS) return formation;
+  if (playersOnCourt <= 4) return '4er';
+  if (playersOnCourt === 5) return '5er';
+  if (playersOnCourt === 6) return '6er';
+  return '7er';
+}
+
+export function getHandballCourtPositions(formatId: string): CourtPosition[] {
+  return HANDBALL_COURT_POSITIONS[formatId] ?? HANDBALL_COURT_POSITIONS['7er'];
+}
+
+export function getHandballPositions(formatId: string): { x: number; y: number }[] {
+  return getHandballCourtPositions(formatId).map(({ x, y }) => ({ x, y }));
 }
 
 // ─── Hockey positions ─────────────────────────────────────────────────────────

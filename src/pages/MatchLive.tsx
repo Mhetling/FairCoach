@@ -40,12 +40,12 @@ import {
 import type { ZoneTime } from "@/types/database";
 import { useTeam } from "@/hooks/useTeams";
 import {
-  PITCH_SPECS, HANDBALL_COURT_SPEC, BASKETBALL_COURT_SPEC,
-  type PitchSpec, type HandballCourtSpec, type BasketballCourtSpec,
+  PITCH_SPECS, BASKETBALL_COURT_SPEC, getHandballCourtSpec,
+  type PitchSpec, type BasketballCourtSpec,
 } from "@/lib/pitchSpecs";
 import {
   ELEVEN_FORMATIONS, getFormationPositions, getHandballPositions,
-  getBasketballPositions,
+  getHandballCourtPositions, resolveHandballFormatId, getBasketballPositions,
 } from "@/lib/formations";
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
@@ -131,16 +131,28 @@ function computeZoneForSlot(
     const side = x < 42 ? "l-" : x > 58 ? "r-" : "";
     return y >= 70 ? `${side}back` : y < 60 ? `${side}wing` : "midt";
   }
-  if (posIdx === 0) return "keeper";
   if (sportId === "handball") {
-    const pos = getHandballPositions(playersOnField)[posIdx];
-    if (!pos) return "back";
-    if (pos.x <= 20) return "l-wing";
-    if (pos.x >= 80) return "r-wing";
-    if (pos.y < 45) return "strek";
-    return pos.x < 47 ? "l-back" : pos.x > 53 ? "r-back" : "back";
+    const fmtId = resolveHandballFormatId(formation, playersOnField);
+    const courtPos = getHandballCourtPositions(fmtId)[posIdx];
+    if (!courtPos) return "back";
+    if (courtPos.isGoalkeeper) return "keeper";
+    switch (courtPos.id) {
+      case 'st': return "strek";
+      case 'vk': return "l-wing";
+      case 'hk': return "r-wing";
+      case 'vb': return "l-back";
+      case 'hb': return "r-back";
+      case 'mb': return "back";
+      default: {
+        const { x, y } = courtPos;
+        if (x <= 20) return "l-wing";
+        if (x >= 80) return "r-wing";
+        return y < 50 ? (x < 50 ? "l-angrep" : "r-angrep") : (x < 47 ? "l-back" : x > 53 ? "r-back" : "back");
+      }
+    }
   }
-  // Soccer
+  // Soccer — posIdx 0 is always GK
+  if (posIdx === 0) return "keeper";
   const rawPositions = getFormationPositions(playersOnField, formation);
   const pos = rawPositions[posIdx];
   const y = pos?.y ?? 65;
@@ -191,22 +203,36 @@ function PitchMarkings({ spec }: { spec: PitchSpec }) {
 
 // ─── Handball court markings ─────────────────────────────────────────────────
 
-function HandballCourtMarkings({ spec }: { spec: HandballCourtSpec }) {
+function HandballCourtMarkings({ formatId }: { formatId: string }) {
+  const spec = getHandballCourtSpec(formatId);
   const { width: W, length: L, goalWidth: G, goalAreaRadius: R6, freeThrowRadius: R9, penaltyDistance: P7 } = spec;
+  const is4er = formatId === '4er';
   const cx = W / 2;
   const sw = W / 60;
   const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.5, strokeWidth: sw };
   const dash = { ...line, strokeDasharray: `${sw * 3} ${sw * 2}` };
-  const dot = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
-  const goalLine = { stroke: "white", strokeOpacity: 0.9, strokeWidth: sw * 3 };
+  const goalLine = { stroke: "white", strokeOpacity: 0.9, strokeWidth: sw * 3, fill: "none" as const };
   const lx = cx - G / 2;
   const rx = cx + G / 2;
 
-  // D-shaped path: y0 = end line, dir=1 opens downward (top end), dir=-1 opens upward (bottom end)
+  // D-shape: rectangle (goalWidth × r) + two quarter circles of radius r at each goalpost
   function dPath(y0: number, r: number, dir: 1 | -1) {
     const yc = y0 + r * dir;
     const sweep = dir === 1 ? 0 : 1;
     return `M ${lx - r},${y0} A ${r},${r} 0 0,${sweep} ${lx},${yc} L ${rx},${yc} A ${r},${r} 0 0,${sweep} ${rx + r},${y0}`;
+  }
+
+  if (is4er) {
+    return (
+      <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
+        viewBox={`0 0 ${W} ${L}`} preserveAspectRatio="none">
+        <rect x={0} y={0} width={W} height={L} {...line} />
+        <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
+        <circle cx={cx} cy={L / 2} r={sw * 1.5} fill="white" fillOpacity={0.5} stroke="none" />
+        <line x1={lx} y1={0} x2={rx} y2={0} {...goalLine} />
+        <line x1={lx} y1={L} x2={rx} y2={L} {...goalLine} />
+      </svg>
+    );
   }
 
   return (
@@ -214,16 +240,16 @@ function HandballCourtMarkings({ spec }: { spec: HandballCourtSpec }) {
       viewBox={`0 ${L / 3} ${W} ${L * 2 / 3}`} preserveAspectRatio="none">
       <rect x={0} y={0} width={W} height={L} {...line} />
       <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-      <circle cx={cx} cy={L / 2} r={sw * 1.2} {...dot} />
-      {/* Top end */}
-      <path d={dPath(0, R6, 1)} {...line} />
-      <path d={dPath(0, R9, 1)} {...dash} />
-      <circle cx={cx} cy={P7} r={sw * 1.2} {...dot} />
+      <circle cx={cx} cy={L / 2} r={sw * 1.2} fill="white" fillOpacity={0.5} stroke="none" />
+      {/* Top end (opponent goal) */}
+      {R6 != null && <path d={dPath(0, R6, 1)} {...line} />}
+      {R9 != null && <path d={dPath(0, R9, 1)} {...dash} />}
+      {P7 != null && <line x1={cx - 0.5} y1={P7} x2={cx + 0.5} y2={P7} stroke="white" strokeOpacity={0.6} strokeWidth={sw * 2} fill="none" />}
       <line x1={lx} y1={0} x2={rx} y2={0} {...goalLine} />
-      {/* Bottom end */}
-      <path d={dPath(L, R6, -1)} {...line} />
-      <path d={dPath(L, R9, -1)} {...dash} />
-      <circle cx={cx} cy={L - P7} r={sw * 1.2} {...dot} />
+      {/* Bottom end (own goal) */}
+      {R6 != null && <path d={dPath(L, R6, -1)} {...line} />}
+      {R9 != null && <path d={dPath(L, R9, -1)} {...dash} />}
+      {P7 != null && <line x1={cx - 0.5} y1={L - P7} x2={cx + 0.5} y2={L - P7} stroke="white" strokeOpacity={0.6} strokeWidth={sw * 2} fill="none" />}
       <line x1={lx} y1={L} x2={rx} y2={L} {...goalLine} />
     </svg>
   );
@@ -997,6 +1023,11 @@ export function MatchLive() {
   const isHockey     = match.sport_id === "hockey";
   const isBasketball = match.sport_id === "basketball";
 
+  const handballFormatId = isHandball
+    ? resolveHandballFormatId(match.formation, match.players_on_field)
+    : '7er';
+  const is4er = isHandball && handballFormatId === '4er';
+
   // Hockey: utled format fra match.formation (bakoverkompatibel)
   const hockeyFormat: HockeyFormat = isHockey
     ? resolveHockeyFormat(match.formation, match.players_on_field)
@@ -1010,14 +1041,14 @@ export function MatchLive() {
   const positions = isHockey
     // y-verdier i RINK_POSITIONS er i [50,100] (eget halvfelt) → konverter til halvbane-% (0–100)
     ? hockeyRinkPositions.map(p => ({ x: p.x, y: (p.y - 50) * 2 }))
-    : (
-        isHandball   ? getHandballPositions(match.players_on_field) :
-        isBasketball ? getBasketballPositions(match.players_on_field) :
-        getFormationPositions(match.players_on_field, formation)
-      ).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
+    : isHandball
+    // 4er: full-court view — use raw y%; others: crop to bottom 2/3
+    ? getHandballPositions(handballFormatId).map(p => ({ x: p.x, y: is4er ? p.y : toCroppedY(p.y) }))
+    : (isBasketball ? getBasketballPositions(match.players_on_field) : getFormationPositions(match.players_on_field, formation))
+      .map(p => ({ x: p.x, y: toCroppedY(p.y) }));
 
   const pitchSpec =
-    isHandball   ? HANDBALL_COURT_SPEC :
+    isHandball   ? getHandballCourtSpec(handballFormatId) :
     isHockey     ? hockeyDisplaySpec :
     isBasketball ? BASKETBALL_COURT_SPEC :
     (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
@@ -1052,6 +1083,10 @@ export function MatchLive() {
     const posIdx = positionMap.current[mp.player_id];
     if (posIdx === undefined) return false;
     if (isHockey) return hockeyRinkPositions[posIdx]?.isGoalie === true;
+    if (isHandball) {
+      const fmtId = resolveHandballFormatId(match.formation, match.players_on_field);
+      return getHandballCourtPositions(fmtId)[posIdx]?.isGoalkeeper === true;
+    }
     return posIdx === 0;
   }
 
@@ -1378,17 +1413,23 @@ export function MatchLive() {
           )}
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
             halfLength={isHockey}
+            fullLength={is4er}
             bgColor={
               isHandball   ? "bg-[#C8A45A]" :
               isHockey     ? "bg-[#E8F4FB]" :
               isBasketball ? "bg-[#c8944a]" :
               "bg-green-700"
             }>
-            {isHandball   ? <HandballCourtMarkings spec={HANDBALL_COURT_SPEC} /> :
+            {isHandball   ? <HandballCourtMarkings formatId={handballFormatId} /> :
              isHockey     ? <HockeyRinkHalfContent format={hockeyFormat} /> :
              isBasketball ? <BasketballCourtMarkings spec={BASKETBALL_COURT_SPEC} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }
+            {is4er && (
+              <div className="absolute top-[6%] left-1/2 -translate-x-1/2 pointer-events-none z-10 bg-black/30 backdrop-blur-sm text-white/80 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                Ingen fast keeper
+              </div>
+            )}
             {(() => {
               const subOutRankMap = new Map(
                 [...fieldPlayers]
