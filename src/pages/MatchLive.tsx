@@ -211,7 +211,6 @@ function PitchMarkings({ spec }: { spec: PitchSpec }) {
 function HandballCourtMarkings({ formatId }: { formatId: string }) {
   const spec = getHandballCourtSpec(formatId);
   const { width: W, length: L, goalWidth: G, goalAreaRadius: R6, freeThrowRadius: R9, penaltyDistance: P7 } = spec;
-  const is4er = formatId === '4er';
   const cx = W / 2;
   const sw = W / 60;
   const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.5, strokeWidth: sw };
