@@ -82,11 +82,11 @@ export const HANDBALL_COURT_POSITIONS: Record<string, CourtPosition[]> = {
   // Backs/MB have LOWER y (furthest from goal, arc crown at centre).
   // All y ≥ 50 so players stay within own half (displayed area).
   '4er': [
-    // No GK, no 9m arc — gentle dome across own half
-    { id: 'p1', label: '1', fullName: 'Utespiller', x: 16, y: 62, isGoalkeeper: false },
-    { id: 'p2', label: '2', fullName: 'Utespiller', x: 38, y: 56, isGoalkeeper: false },
-    { id: 'p3', label: '3', fullName: 'Utespiller', x: 62, y: 56, isGoalkeeper: false },
-    { id: 'p4', label: '4', fullName: 'Utespiller', x: 84, y: 62, isGoalkeeper: false },
+    // No GK, no 9m arc — gentle dome across mid-half
+    { id: 'p1', label: '1', fullName: 'Utespiller', x: 16, y: 76, isGoalkeeper: false },
+    { id: 'p2', label: '2', fullName: 'Utespiller', x: 38, y: 72, isGoalkeeper: false },
+    { id: 'p3', label: '3', fullName: 'Utespiller', x: 62, y: 72, isGoalkeeper: false },
+    { id: 'p4', label: '4', fullName: 'Utespiller', x: 84, y: 76, isGoalkeeper: false },
   ],
   '5er': [
     // 9m arc (L=26, R9=9): crown y%≈65, wing y%≈73
