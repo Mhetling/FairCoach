@@ -256,71 +256,73 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.45, strokeWidth: sw };
   const dot  = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
   const keyFill = { fill: "white", fillOpacity: 0.06 };
+  const kx = (W - KW) / 2;
 
-  function threePointPath(basketY: number, dir: 1 | -1): string {
+  // Three-point path centred on the basket (not the baseline).
+  // baselineY: y of the baseline end; dir=1 top end, dir=-1 bottom end.
+  function threePointPath(baselineY: number, dir: 1 | -1): string {
     if (TPR == null) return "";
-    const cornerX = 0.9;
-    const dx = cx - cornerX;
-    const arcY = basketY + dir * Math.sqrt(Math.max(0, TPR * TPR - dx * dx));
+    const cornerX = 0.9;              // straight portion: 0.9 m from sideline
+    const dx = cx - cornerX;          // horizontal distance from centre to corner
+    const dy = Math.sqrt(Math.max(0, TPR * TPR - dx * dx));
+    const basketCY = baselineY + dir * BD;  // basket centre y
+    const cornerY  = basketCY - dir * dy;   // where straight meets arc
     const sweep = dir === 1 ? 1 : 0;
     return [
-      `M ${cornerX},${basketY}`,
-      `L ${cornerX},${arcY}`,
-      `A ${TPR},${TPR} 0 0,${sweep} ${W - cornerX},${arcY}`,
-      `L ${W - cornerX},${basketY}`,
+      `M ${cornerX},${baselineY}`,
+      `L ${cornerX},${cornerY}`,
+      `A ${TPR},${TPR} 0 0,${sweep} ${W - cornerX},${cornerY}`,
+      `L ${W - cornerX},${baselineY}`,
     ].join(" ");
   }
 
-  function keyPath(endY: number, dir: 1 | -1) {
-    const kx = (W - KW) / 2;
-    const ftY = endY + dir * KD;
-    const ftSweep = dir === 1 ? 1 : 0;
-    return { kx, ftY, ftSweep };
-  }
-
-  const top = keyPath(0, 1);
-  const bot = keyPath(L, -1);
-
-  // halfCourt (3×3): show full court; others: show own defensive half (basket at bottom)
+  // Extend view 1 m below own baseline so basket & backboard have breathing room.
+  const EXTRA = HC ? 0 : 1;
   const viewBox = HC
     ? `0 0 ${W} ${L}`
-    : `0 ${L / 2} ${W} ${L / 2}`;
+    : `0 ${L / 2} ${W} ${L / 2 + EXTRA}`;
+
+  // Basket positions
+  const botBasketY = L - BD;          // bottom basket centre y
+  const botBoardY  = L - BD + 0.375;  // backboard behind basket (toward baseline)
+  const topBasketY = BD;              // top basket centre y (3×3 only)
+  const topBoardY  = BD - 0.375;      // backboard toward top baseline
 
   return (
-    <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
+    <svg className="absolute inset-0 h-full w-full pointer-events-none"
       viewBox={viewBox} preserveAspectRatio="none">
       {/* Outer boundary */}
       <rect x={0} y={0} width={W} height={L} {...line} />
 
-      {/* Centre line and half-circle at top of defensive half — omitted for 3×3 */}
+      {/* Centre line + half-circle (lower semicircle only) — non-3×3 */}
       {!HC && <>
         <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-        <circle cx={cx} cy={L / 2} r={CCR} {...line} />
+        <path d={`M ${cx - CCR},${L / 2} A ${CCR},${CCR} 0 0,1 ${cx + CCR},${L / 2}`} {...line} />
         <circle cx={cx} cy={L / 2} r={sw * 0.8} {...dot} />
       </>}
 
-      {/* Top end — omitted for half-court (3x3) */}
-      {!HC && <>
-        <rect x={top.kx} y={0} width={KW} height={KD} {...keyFill} />
-        <rect x={top.kx} y={0} width={KW} height={KD} {...line} />
-        <path d={`M ${top.kx},${top.ftY} A ${FTR},${FTR} 0 0,${top.ftSweep} ${top.kx + KW},${top.ftY}`} {...line} />
-        <path d={`M ${cx - 1.25},${BD} A 1.25,1.25 0 0,1 ${cx + 1.25},${BD}`}
+      {/* Top basket (3×3 only — full-court view) */}
+      {HC && <>
+        <rect x={kx} y={0} width={KW} height={KD} {...keyFill} />
+        <rect x={kx} y={0} width={KW} height={KD} {...line} />
+        <path d={`M ${kx},${KD} A ${FTR},${FTR} 0 0,1 ${kx + KW},${KD}`} {...line} />
+        <path d={`M ${cx - 1.25},${topBasketY} A 1.25,1.25 0 0,1 ${cx + 1.25},${topBasketY}`}
           {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
-        <circle cx={cx} cy={BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
-        <circle cx={cx} cy={BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
-        <line x1={cx - 1.2} y1={BD + 0.2} x2={cx + 1.2} y2={BD + 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
+        <circle cx={cx} cy={topBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
+        <line x1={cx - 0.9} y1={topBoardY} x2={cx + 0.9} y2={topBoardY}
+          {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
         {TPR != null && <path d={threePointPath(0, 1)} {...line} />}
       </>}
 
-      {/* Bottom end — always shown */}
-      <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...keyFill} />
-      <rect x={bot.kx} y={L - KD} width={KW} height={KD} {...line} />
-      <path d={`M ${bot.kx},${bot.ftY} A ${FTR},${FTR} 0 0,${bot.ftSweep} ${bot.kx + KW},${bot.ftY}`} {...line} />
-      <path d={`M ${cx - 1.25},${L - BD} A 1.25,1.25 0 0,0 ${cx + 1.25},${L - BD}`}
+      {/* Bottom basket — always shown */}
+      <rect x={kx} y={L - KD} width={KW} height={KD} {...keyFill} />
+      <rect x={kx} y={L - KD} width={KW} height={KD} {...line} />
+      <path d={`M ${kx},${L - KD} A ${FTR},${FTR} 0 0,0 ${kx + KW},${L - KD}`} {...line} />
+      <path d={`M ${cx - 1.25},${botBasketY} A 1.25,1.25 0 0,0 ${cx + 1.25},${botBasketY}`}
         {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
-      <circle cx={cx} cy={L - BD} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
-      <circle cx={cx} cy={L - BD} r={0.35} {...{ fill: "none", stroke: "white", strokeOpacity: 0.6, strokeWidth: sw * 0.8 }} />
-      <line x1={cx - 1.2} y1={L - BD - 0.2} x2={cx + 1.2} y2={L - BD - 0.2} {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
+      <circle cx={cx} cy={botBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
+      <line x1={cx - 0.9} y1={botBoardY} x2={cx + 0.9} y2={botBoardY}
+        {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
       {TPR != null && <path d={threePointPath(L, -1)} {...line} />}
     </svg>
   );
@@ -328,16 +330,16 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
 
 // ─── Pitch drop zone ──────────────────────────────────────────────────────────
 
-function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", fullLength = false, halfLength = false }: {
+function PitchZone({ children, anyDragging, spec, bgColor = "bg-green-700", fullLength = false, halfLength = false, aspectOverride }: {
   children: React.ReactNode; anyDragging: boolean; spec: { width: number; length: number };
-  bgColor?: string; fullLength?: boolean; halfLength?: boolean;
+  bgColor?: string; fullLength?: boolean; halfLength?: boolean; aspectOverride?: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: "pitch" });
-  const ar = halfLength
+  const ar = aspectOverride ?? (halfLength
     ? `${spec.width} / ${spec.length / 2}`
     : fullLength
     ? `${spec.width} / ${spec.length}`
-    : `${spec.width} / ${spec.length * 2 / 3}`;
+    : `${spec.width} / ${spec.length * 2 / 3}`);
   return (
     <div id="pitch-container" ref={setNodeRef}
       className={cn(
@@ -1441,6 +1443,9 @@ export function MatchLive() {
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
             halfLength={isHockey || isHandball || (isBasketball && basketballFormatId !== '3x3')}
             fullLength={isBasketball && basketballFormatId === '3x3'}
+            aspectOverride={isBasketball && basketballFormatId !== '3x3'
+              ? `${pitchSpec.width} / ${pitchSpec.length / 2 + 1}`
+              : undefined}
             bgColor={
               isHandball   ? "bg-[#1565C0]" :
               isHockey     ? "bg-[#E8F4FB]" :
