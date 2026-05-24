@@ -24,7 +24,7 @@ export const BASKETBALL_FORMATS: Record<string, BasketballFormat> = {
     courtLength: 22, courtWidth: 13, basketHeight: 2.6,
     periodLength: 5, periodCount: 6,
     rulesUrl: 'https://www.basket.no/siteassets/nbbf---dokumenter/easybasket/nbbf-easybasket-regler-og-retningslinjer-2020.pdf',
-    note: 'Ingen poengføring – alle deltar og har det gøy. Alle spillere må spille minst én periode. Lavere kurv (2,6 m) og liten bane. Kun mann-til-mann-forsvar. Ingen timeout.',
+    note: 'Ingen poengregistrering. Spilleren som spiller mest kan kun spille én periode mer enn spilleren som spiller minst. Alle straffesituasjoner gir innkast. Ingen straffekast, timeout, backcourt-regel eller 3-poengslinjer. Kun mann-til-mann-forsvar.',
   },
   '3x3': {
     id: '3x3', label: '3×3 Basketball', subtitle: 'Halvbane', ageGroup: 'U13 og eldre',

@@ -372,6 +372,8 @@ export function MatchSetup() {
     const defaultMins = fmt === '5v5' ? 10 : spec.periodLength;
     setPeriodLengthSecs(defaultMins * 60);
     setPeriodCount(spec.periodCount);
+    // NBBF EasyBasket rule: no score registration
+    if (fmt === 'easybasket') setTrackGoals(false);
   }
 
   function togglePlayer(id: string) {
@@ -764,25 +766,37 @@ export function MatchSetup() {
             )}
 
             {/* Goal tracking toggle */}
-            <button
-              type="button"
-              onClick={() => setTrackGoals((v) => !v)}
-              className="flex w-full items-center justify-between rounded-md border border-ink/20 bg-cream-dark px-3 py-3 text-left transition-colors hover:bg-ink/5"
-            >
-              <div>
-                <div className="text-sm font-medium text-ink">Tell mål</div>
-                <div className="text-xs text-ink-muted">Registrer mål og målscorer underveis</div>
+            {isBasketball && basketballFormat === 'easybasket' ? (
+              <div className="flex w-full items-center justify-between rounded-md border border-ink/10 bg-cream-dark/50 px-3 py-3 opacity-60">
+                <div>
+                  <div className="text-sm font-medium text-ink">Tell mål</div>
+                  <div className="text-xs text-ink-muted">Ikke tillatt i EasyBasket (NBBF-regler)</div>
+                </div>
+                <div className="relative h-6 w-11 shrink-0 rounded-full bg-ink/10">
+                  <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white/70 shadow" />
+                </div>
               </div>
-              <div className={cn(
-                "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                trackGoals ? "bg-ink" : "bg-ink/20",
-              )}>
-                <span className={cn(
-                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                  trackGoals ? "translate-x-5" : "translate-x-0.5",
-                )} />
-              </div>
-            </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTrackGoals((v) => !v)}
+                className="flex w-full items-center justify-between rounded-md border border-ink/20 bg-cream-dark px-3 py-3 text-left transition-colors hover:bg-ink/5"
+              >
+                <div>
+                  <div className="text-sm font-medium text-ink">Tell mål</div>
+                  <div className="text-xs text-ink-muted">Registrer mål og målscorer underveis</div>
+                </div>
+                <div className={cn(
+                  "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+                  trackGoals ? "bg-ink" : "bg-ink/20",
+                )}>
+                  <span className={cn(
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    trackGoals ? "translate-x-5" : "translate-x-0.5",
+                  )} />
+                </div>
+              </button>
+            )}
 
           </CardContent>
         </Card>

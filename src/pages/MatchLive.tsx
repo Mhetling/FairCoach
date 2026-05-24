@@ -1019,6 +1019,9 @@ export function MatchLive() {
   const basketballFormatId = isBasketball
     ? resolveBasketballFormatId(match.formation, match.players_on_field)
     : '5v5';
+  const isEasyBasket = isBasketball && basketballFormatId === 'easybasket';
+  // NBBF rule: most-played may not exceed least-played by more than 1 period (5 min)
+  const EASYBASKET_MAX_SPREAD = 5 * 60;
 
   // Hockey: utled format fra match.formation (bakoverkompatibel)
   const hockeyFormat: HockeyFormat = isHockey
@@ -1066,6 +1069,22 @@ export function MatchLive() {
   function getFP(mp: RichMatchPlayer) {
     return calcFP(getPlayTime(mp), elapsed, match.players_on_field, players.length);
   }
+
+  // EasyBasket fair-play: flag players who violate the ≤1-period spread rule.
+  const easyBasketViolation = (() => {
+    if (!isEasyBasket || players.length < 2 || elapsed === 0) return null;
+    const times = players.map((p) => ({ p, secs: getPlayTime(p) }));
+    const maxSecs = Math.max(...times.map((t) => t.secs));
+    const minSecs = Math.min(...times.map((t) => t.secs));
+    if (maxSecs - minSecs <= EASYBASKET_MAX_SPREAD) return null;
+    const overPlayed = times
+      .filter((t) => t.secs > minSecs + EASYBASKET_MAX_SPREAD)
+      .map((t) => t.p.player.name.split(" ")[0]);
+    const underPlayed = times
+      .filter((t) => t.secs < maxSecs - EASYBASKET_MAX_SPREAD)
+      .map((t) => t.p.player.name.split(" ")[0]);
+    return { overPlayed, underPlayed };
+  })();
 
   // Returns true when a field player is currently occupying the GK slot.
   // Basketball has no GK; for hockey the slot has isGoalie=true; for all other
@@ -1371,7 +1390,7 @@ export function MatchLive() {
         </div>
 
         {/* Score */}
-        {match.track_goals && <div className="mb-3 flex items-center rounded-xl border border-ink/10 bg-cream-dark px-4 py-3">
+        {match.track_goals && !isEasyBasket && <div className="mb-3 flex items-center rounded-xl border border-ink/10 bg-cream-dark px-4 py-3">
           <div className="flex flex-1 flex-col items-center gap-1.5">
             <span className="max-w-[100px] truncate text-center text-xs font-semibold uppercase tracking-widest text-ink-muted">{team?.name ?? "Vi"}</span>
             <span className="font-display text-5xl font-bold tabular-nums text-ink leading-none">{scoreHome}</span>
@@ -1474,6 +1493,18 @@ export function MatchLive() {
           )}
         </div>
 
+        {/* EasyBasket fair-play violation warning */}
+        {easyBasketViolation && (
+          <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-900">Spilletidsregel brutt (EasyBasket)</p>
+            <p className="text-xs text-amber-800 mt-1 leading-snug">
+              Forskjellen mellom mest og minst spilte spiller er over 1 periode (5 min).
+              {easyBasketViolation.overPlayed.length > 0 && <> Gi hvile til: <strong>{easyBasketViolation.overPlayed.join(", ")}</strong>.</>}
+              {easyBasketViolation.underPlayed.length > 0 && <> Spill inn: <strong>{easyBasketViolation.underPlayed.join(", ")}</strong>.</>}
+            </p>
+          </div>
+        )}
+
         {/* Bench */}
         {benchPlayers.length > 0 && (
           <div>
@@ -1513,7 +1544,7 @@ export function MatchLive() {
         </DragOverlay>
 
         {/* Goal dialog */}
-        {match.track_goals && (
+        {match.track_goals && !isEasyBasket && (
           <GoalDialog
             open={goalDialog !== null}
             team={goalDialog?.team ?? "home"}
