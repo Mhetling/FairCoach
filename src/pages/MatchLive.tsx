@@ -267,7 +267,7 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
     const dy = Math.sqrt(Math.max(0, TPR * TPR - dx * dx));
     const basketCY = baselineY + dir * BD;  // basket centre y
     const cornerY  = basketCY - dir * dy;   // where straight meets arc
-    const sweep = dir === 1 ? 1 : 0;
+    const sweep = dir === 1 ? 0 : 1;
     return [
       `M ${cornerX},${baselineY}`,
       `L ${cornerX},${cornerY}`,
