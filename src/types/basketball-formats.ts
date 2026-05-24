@@ -23,7 +23,7 @@ export const BASKETBALL_FORMATS: Record<string, BasketballFormat> = {
     playersOnCourt: 4, squadMax: 8,
     courtLength: 22, courtWidth: 13, basketHeight: 2.6,
     periodLength: 5, periodCount: 6,
-    rulesUrl: 'https://www.basket.no/siteassets/nbbf---dokumenter/easybasket/nbbf-easybasket-regler-og-retningslinjer-2020.pdf',
+    rulesUrl: '/nbbf-easybasket-regler-2022.pdf',
     note: 'Ingen poengregistrering. Spilleren som spiller mest kan kun spille én periode mer enn spilleren som spiller minst. Alle straffesituasjoner gir innkast. Ingen straffekast, timeout, backcourt-regel eller 3-poengslinjer. Kun mann-til-mann-forsvar.',
   },
   '3x3': {
