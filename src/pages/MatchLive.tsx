@@ -45,8 +45,8 @@ import {
 } from "@/lib/pitchSpecs";
 import {
   ELEVEN_FORMATIONS, getFormationPositions, getHandballPositions,
-  getHandballCourtPositions, resolveHandballFormatId, getBasketballPositions,
-  resolveBasketballFormatId,
+  getHandballCourtPositions, resolveHandballFormatId,
+  getBasketballCourtPositions, resolveBasketballFormatId,
 } from "@/lib/formations";
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
@@ -281,13 +281,18 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const top = keyPath(0, 1);
   const bot = keyPath(L, -1);
 
+  // halfCourt (3×3): show full court; others: show own defensive half (basket at bottom)
+  const viewBox = HC
+    ? `0 0 ${W} ${L}`
+    : `0 ${L / 2} ${W} ${L / 2}`;
+
   return (
     <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
-      viewBox={`0 ${L / 3} ${W} ${L * 2 / 3}`} preserveAspectRatio="none">
+      viewBox={viewBox} preserveAspectRatio="none">
       {/* Outer boundary */}
       <rect x={0} y={0} width={W} height={L} {...line} />
 
-      {/* Centre line and circle — omitted for half-court (3x3) */}
+      {/* Centre line and half-circle at top of defensive half — omitted for 3×3 */}
       {!HC && <>
         <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
         <circle cx={cx} cy={L / 2} r={CCR} {...line} />
@@ -1039,8 +1044,12 @@ export function MatchLive() {
     : isHandball
     // all formats: show own defensive half (full-court y 50–100% → view y 0–100%)
     ? getHandballPositions(handballFormatId).map(p => ({ x: p.x, y: toHandballY(p.y) }))
-    : (isBasketball ? getBasketballPositions(match.players_on_field) : getFormationPositions(match.players_on_field, formation))
-      .map(p => ({ x: p.x, y: toCroppedY(p.y) }));
+    : isBasketball
+    // 3×3 positions are stored as half-court view %; others need toHandballY (full-court → view)
+    ? getBasketballCourtPositions(basketballFormatId).map(p => ({
+        x: p.x, y: basketballFormatId === '3x3' ? p.y : toHandballY(p.y),
+      }))
+    : getFormationPositions(match.players_on_field, formation).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
 
   const pitchSpec =
     isHandball   ? getHandballCourtSpec(handballFormatId) :
@@ -1430,7 +1439,8 @@ export function MatchLive() {
             </button>
           )}
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
-            halfLength={isHockey || isHandball}
+            halfLength={isHockey || isHandball || (isBasketball && basketballFormatId !== '3x3')}
+            fullLength={isBasketball && basketballFormatId === '3x3'}
             bgColor={
               isHandball   ? "bg-[#1565C0]" :
               isHockey     ? "bg-[#E8F4FB]" :
@@ -1457,7 +1467,11 @@ export function MatchLive() {
               return fieldPlayers.map((mp, i) => {
                 const posIdx = positionMap.current[mp.player_id] ?? i;
                 const inGKSlot = isInGKSlot(mp);
-                const posLabel = isHockey ? hockeyRinkPositions[posIdx]?.label : undefined;
+                const posLabel = isHockey
+                  ? hockeyRinkPositions[posIdx]?.label
+                  : isBasketball
+                  ? getBasketballCourtPositions(basketballFormatId)[posIdx]?.label
+                  : undefined;
                 return (
                   <FieldToken key={mp.player_id} mp={mp}
                     pos={positions[posIdx] ?? { x: 50, y: 50 }}

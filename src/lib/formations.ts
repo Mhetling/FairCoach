@@ -96,7 +96,16 @@ import {
   type CourtPosition,
 } from "@/types/handball-formats";
 
-import { BASKETBALL_FORMATS, type BasketballFormatId } from "@/types/basketball-formats";
+import {
+  BASKETBALL_FORMATS, BASKETBALL_COURT_POSITIONS,
+  type BasketballFormatId, type BasketballCourtPosition,
+} from "@/types/basketball-formats";
+
+export type { BasketballCourtPosition };
+
+export function getBasketballCourtPositions(formatId: string): BasketballCourtPosition[] {
+  return BASKETBALL_COURT_POSITIONS[formatId] ?? BASKETBALL_COURT_POSITIONS['5v5-senior'];
+}
 
 export function resolveBasketballFormatId(
   formation: string | null,

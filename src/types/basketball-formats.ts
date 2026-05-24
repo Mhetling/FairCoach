@@ -69,4 +69,48 @@ export const BASKETBALL_FORMATS: Record<string, BasketballFormat> = {
 export type BasketballFormatId = BasketballFormat['id'];
 export const BASKETBALL_FORMAT_ORDER: BasketballFormatId[] = ['easybasket', '3x3', '5v5-u14', '5v5-u16', '5v5-senior'];
 
+// ─── Court positions ──────────────────────────────────────────────────────────
+// x/y are full-court percentages [0–100], y=50 = centre line, y=100 = own basket.
+// Exception: '3x3' positions are stored as half-court view percentages (y=0 top,
+// y=100 = own basket) because the entire 3×3 court is one defensive half.
+// toHandballY((y-50)*2) is applied in MatchLive for non-3×3 formats.
+
+export interface BasketballCourtPosition {
+  id: string;
+  label: string;     // e.g. "PG", "C", "1"
+  fullName: string;
+  x: number;
+  y: number;
+}
+
+// 2-3 zone positions for all 5v5 variants (full-court %)
+const FIVE_V_FIVE_2_3: BasketballCourtPosition[] = [
+  // Front row — guards (low y = high up, far from own basket)
+  { id: 'pg', label: 'PG', fullName: 'Oppspiller',    x: 38, y: 72 },  // view y≈44
+  { id: 'sg', label: 'SG', fullName: 'Skyttebakvakt', x: 62, y: 72 },  // view y≈44
+  // Back row — forwards + centre (high y = near own basket)
+  { id: 'sf', label: 'SF', fullName: 'Liten forward', x: 20, y: 84 },  // view y≈68
+  { id: 'c',  label: 'C',  fullName: 'Senter',        x: 50, y: 86 },  // view y≈72
+  { id: 'pf', label: 'PF', fullName: 'Stor forward',  x: 80, y: 84 },  // view y≈68
+];
+
+export const BASKETBALL_COURT_POSITIONS: Record<string, BasketballCourtPosition[]> = {
+  // 4v4 EasyBasket — 2-2 box (no named positions, neutral labels 1–4)
+  'easybasket': [
+    { id: 'p1', label: '1', fullName: 'Utespiller 1', x: 32, y: 71 },  // view y≈42
+    { id: 'p2', label: '2', fullName: 'Utespiller 2', x: 68, y: 71 },  // view y≈42
+    { id: 'p3', label: '3', fullName: 'Utespiller 3', x: 28, y: 84 },  // view y≈68
+    { id: 'p4', label: '4', fullName: 'Utespiller 4', x: 72, y: 84 },  // view y≈68
+  ],
+  // 3×3 — triangle; stored as half-court view % (raw, no toHandballY)
+  '3x3': [
+    { id: 'pg', label: 'PG', fullName: 'Oppspiller',    x: 50, y: 38 },
+    { id: 'sf', label: 'SF', fullName: 'Liten forward', x: 22, y: 68 },
+    { id: 'pf', label: 'PF', fullName: 'Stor forward',  x: 78, y: 68 },
+  ],
+  '5v5-u14':   FIVE_V_FIVE_2_3,
+  '5v5-u16':   FIVE_V_FIVE_2_3,
+  '5v5-senior': FIVE_V_FIVE_2_3,
+};
+
 export const BASKETBALL_RULES_OVERVIEW = 'https://www.basket.no/regioner/nbbf-sentralt/dommere/regler/';
