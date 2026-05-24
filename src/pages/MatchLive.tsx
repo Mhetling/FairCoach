@@ -271,7 +271,7 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
     return [
       `M ${cornerX},${baselineY}`,
       `L ${cornerX},${cornerY}`,
-      `A ${TPR},${TPR} 0 0,${sweep} ${W - cornerX},${cornerY}`,
+      `A ${TPR},${TPR} 0 1,${sweep} ${W - cornerX},${cornerY}`,
       `L ${W - cornerX},${baselineY}`,
     ].join(" ");
   }
