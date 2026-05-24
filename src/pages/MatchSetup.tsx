@@ -339,9 +339,7 @@ export function MatchSetup() {
     setBasketballFormat(fmt);
     const spec = BASKETBALL_FORMATS[fmt];
     setPlayersOnField(spec.playersOnCourt);
-    // 5v5 defaults to 4×10 min; sub-picker in card can change period length
-    const defaultMins = fmt === '5v5' ? 10 : spec.periodLength;
-    setPeriodLengthSecs(defaultMins * 60);
+    setPeriodLengthSecs(spec.periodLength * 60);
     setPeriodCount(spec.periodCount);
     // NBBF EasyBasket rule: no score registration
     if (fmt === 'easybasket') setTrackGoals(false);
