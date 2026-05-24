@@ -76,6 +76,12 @@ export interface BasketballCourtSpec {
   halfCourt: boolean;        // true = 3x3 (single basket, no centre line)
 }
 
+const FULL_COURT_5V5: BasketballCourtSpec = {
+  width: 15, length: 28, threePointRadius: 6.75,
+  keyWidth: 4.9, keyDepth: 5.8, basketDistance: 1.575,
+  centerCircleRadius: 1.8, freeThrowRadius: 1.8, halfCourt: false,
+};
+
 const BASKETBALL_COURT_SPECS: Record<string, BasketballCourtSpec> = {
   'easybasket': {
     width: 13, length: 22, threePointRadius: null,
@@ -87,11 +93,10 @@ const BASKETBALL_COURT_SPECS: Record<string, BasketballCourtSpec> = {
     keyWidth: 4.9, keyDepth: 5.8, basketDistance: 1.575,
     centerCircleRadius: 1.8, freeThrowRadius: 1.8, halfCourt: true,
   },
-  '5v5': {
-    width: 15, length: 28, threePointRadius: 6.75,
-    keyWidth: 4.9, keyDepth: 5.8, basketDistance: 1.575,
-    centerCircleRadius: 1.8, freeThrowRadius: 1.8, halfCourt: false,
-  },
+  '5v5': FULL_COURT_5V5,        // legacy alias
+  '5v5-u14': FULL_COURT_5V5,
+  '5v5-u16': FULL_COURT_5V5,
+  '5v5-senior': FULL_COURT_5V5,
 };
 
 export const BASKETBALL_COURT_SPEC: BasketballCourtSpec = BASKETBALL_COURT_SPECS['5v5'];

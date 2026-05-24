@@ -103,9 +103,10 @@ export function resolveBasketballFormatId(
   playersOnCourt: number,
 ): BasketballFormatId {
   if (formation && formation in BASKETBALL_FORMATS) return formation as BasketballFormatId;
+  if (formation === '5v5') return '5v5-senior'; // legacy alias
   if (playersOnCourt <= 3) return '3x3';
   if (playersOnCourt === 4) return 'easybasket';
-  return '5v5';
+  return '5v5-senior';
 }
 
 export type { CourtPosition };
