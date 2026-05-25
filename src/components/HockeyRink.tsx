@@ -12,31 +12,24 @@ const CREASE_STROKE = RED;
 const GOAL_FILL    = "rgba(255,255,255,0.92)";
 const GOAL_STROKE  = RED;
 
-// ─── D-shaped crease path helpers ────────────────────────────────────────────
-// Straight sides from goal posts + circular arc bulging toward centre ice.
+// ─── IIHF crease path helpers ─────────────────────────────────────────────────
+// Full semicircle of radius CR2 centred on the goal line at goal centre.
+// Flat edge sits on the goal line; arc extends toward centre ice.
 
-function creaseVertTop(cx: number, GL: number, GW: number, CR2: number): string {
-  const h = GW / 2;
-  const dy = Math.sqrt(Math.max(0, CR2 * CR2 - h * h));
-  return `M ${cx - h},${GL} L ${cx - h},${GL + dy} A ${CR2},${CR2} 0 0,1 ${cx + h},${GL + dy} L ${cx + h},${GL} Z`;
+function creaseVertTop(cx: number, GL: number, CR2: number): string {
+  return `M ${cx - CR2},${GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${GL} Z`;
 }
 
-function creaseVertBot(cx: number, L: number, GL: number, GW: number, CR2: number): string {
-  const h = GW / 2;
-  const dy = Math.sqrt(Math.max(0, CR2 * CR2 - h * h));
-  return `M ${cx - h},${L - GL} L ${cx - h},${L - GL - dy} A ${CR2},${CR2} 0 0,0 ${cx + h},${L - GL - dy} L ${cx + h},${L - GL} Z`;
+function creaseVertBot(cx: number, L: number, GL: number, CR2: number): string {
+  return `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${L - GL} Z`;
 }
 
-function creaseHorizLeft(GL: number, cy: number, GW: number, CR2: number): string {
-  const h = GW / 2;
-  const dx = Math.sqrt(Math.max(0, CR2 * CR2 - h * h));
-  return `M ${GL},${cy - h} L ${GL + dx},${cy - h} A ${CR2},${CR2} 0 0,1 ${GL + dx},${cy + h} L ${GL},${cy + h} Z`;
+function creaseHorizLeft(GL: number, cy: number, CR2: number): string {
+  return `M ${GL},${cy - CR2} A ${CR2},${CR2} 0 0,1 ${GL},${cy + CR2} Z`;
 }
 
-function creaseHorizRight(W: number, GL: number, cy: number, GW: number, CR2: number): string {
-  const h = GW / 2;
-  const dx = Math.sqrt(Math.max(0, CR2 * CR2 - h * h));
-  return `M ${W - GL},${cy - h} L ${W - GL - dx},${cy - h} A ${CR2},${CR2} 0 0,0 ${W - GL - dx},${cy + h} L ${W - GL},${cy + h} Z`;
+function creaseHorizRight(W: number, GL: number, cy: number, CR2: number): string {
+  return `M ${W - GL},${cy - CR2} A ${CR2},${CR2} 0 0,0 ${W - GL},${cy + CR2} Z`;
 }
 
 // ─── Faceoff circle with hash marks ──────────────────────────────────────────
@@ -118,8 +111,8 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
   const sw  = W / 90;
   const gd  = Math.min(0.55, GL * 0.8);
 
-  const topCrease = creaseVertTop(cx, GL, GW, CR2);
-  const botCrease = creaseVertBot(cx, L, GL, GW, CR2);
+  const topCrease = creaseVertTop(cx, GL, CR2);
+  const botCrease = creaseVertBot(cx, L, GL, CR2);
 
   // Zone faceoff positions — ~20% from each side board, centered between goal line and blue line
   const fxL = W * 0.27, fxR = W * 0.73;
@@ -199,8 +192,8 @@ function HorizontalMarkings({ spec }: { spec: RinkSpec }) {
   const sw  = L / 70;
   const gd  = Math.min(0.55, GL * 0.8);
 
-  const leftCrease  = creaseHorizLeft(GL, cy, GW, CR2);
-  const rightCrease = creaseHorizRight(W, GL, cy, GW, CR2);
+  const leftCrease  = creaseHorizLeft(GL, cy, CR2);
+  const rightCrease = creaseHorizRight(W, GL, cy, CR2);
 
   return (
     <>
@@ -266,7 +259,7 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
   const halfY = L / 2;
   const gd    = Math.min(0.55, GL * 0.8);
 
-  const botCrease = creaseVertBot(cx, L, GL, GW, CR2);
+  const botCrease = creaseVertBot(cx, L, GL, CR2);
   const boardPath = roundedRect(0, 0, W, L, CR);
   const bw = W / 50;
 
