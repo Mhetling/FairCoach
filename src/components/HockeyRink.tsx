@@ -121,9 +121,10 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
   const topCrease = creaseVertTop(cx, GL, GW, CR2);
   const botCrease = creaseVertBot(cx, L, GL, GW, CR2);
 
-  // Zone faceoff positions — ~20% from each side board
+  // Zone faceoff positions — ~20% from each side board, centered between goal line and blue line
   const fxL = W * 0.27, fxR = W * 0.73;
-  const fyTop = GL * 2.2, fyBot = L - GL * 2.2;
+  const fyTop = BL !== null ? (GL + BL) / 2 : GL * 2.2;
+  const fyBot = BL !== null ? L - (GL + BL) / 2 : L - GL * 2.2;
   const fcr = FCR ?? CR2;
 
   // Neutral zone faceoff dots: just inside the neutral zone from each blue line
@@ -140,10 +141,10 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
       <line x1={0} y1={GL}     x2={W} y2={GL}     stroke={RED} strokeWidth={sw} />
       <line x1={0} y1={L - GL} x2={W} y2={L - GL} stroke={RED} strokeWidth={sw} />
 
-      {/* ─── Mål ─── */}
-      <rect x={cx - GW / 2} y={0} width={GW} height={gd}
+      {/* ─── Mål — åpning på mållinjen, nett strekker seg mot kortenden ─── */}
+      <rect x={cx - GW / 2} y={GL - gd} width={GW} height={gd}
         fill={GOAL_FILL} stroke={GOAL_STROKE} strokeWidth={sw * 0.7} rx={sw * 0.3} />
-      <rect x={cx - GW / 2} y={L - gd} width={GW} height={gd}
+      <rect x={cx - GW / 2} y={L - GL} width={GW} height={gd}
         fill={GOAL_FILL} stroke={GOAL_STROKE} strokeWidth={sw * 0.7} rx={sw * 0.3} />
 
       {/* ─── Blålinjer ─── */}
@@ -326,8 +327,8 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
       {/* Målgård (D-form, åpner mot senter) */}
       <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
 
-      {/* Mål */}
-      <rect x={cx - GW / 2} y={L - gd} width={GW} height={gd}
+      {/* Mål — åpning på mållinjen */}
+      <rect x={cx - GW / 2} y={L - GL} width={GW} height={gd}
         fill={GOAL_FILL} stroke={GOAL_STROKE} strokeWidth={sw * 0.7} rx={sw * 0.3} />
     </svg>
   );
