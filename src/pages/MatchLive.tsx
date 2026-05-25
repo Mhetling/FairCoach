@@ -319,7 +319,7 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
         {/* FT circle: dashed half outside key (curves away from basket), solid half inside */}
         <path d={`M ${cx - FTR},${KD} A ${FTR},${FTR} 0 0,1 ${cx + FTR},${KD}`} {...dash} />
         <path d={`M ${cx - FTR},${KD} A ${FTR},${FTR} 0 0,0 ${cx + FTR},${KD}`} {...line} />
-        <path d={`M ${cx - 1.25},${topBasketY} A 1.25,1.25 0 0,1 ${cx + 1.25},${topBasketY}`}
+        <path d={`M ${cx - 1.25},${topBasketY} A 1.25,1.25 0 0,0 ${cx + 1.25},${topBasketY}`}
           {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw }} />
         <circle cx={cx} cy={topBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
         <line x1={cx - 0.9} y1={topBoardY} x2={cx + 0.9} y2={topBoardY}
@@ -333,7 +333,7 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
       {/* FT circle: solid half outside key (bows toward center), dashed half inside key (bows toward basket) */}
       <path d={`M ${cx - FTR},${L - KD} A ${FTR},${FTR} 0 0,0 ${cx + FTR},${L - KD}`} {...dash} />
       <path d={`M ${cx - FTR},${L - KD} A ${FTR},${FTR} 0 0,1 ${cx + FTR},${L - KD}`} {...line} />
-      <path d={`M ${cx - 1.25},${botBasketY} A 1.25,1.25 0 0,0 ${cx + 1.25},${botBasketY}`}
+      <path d={`M ${cx - 1.25},${botBasketY} A 1.25,1.25 0 0,1 ${cx + 1.25},${botBasketY}`}
         {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw }} />
       <circle cx={cx} cy={botBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
       <line x1={cx - 0.9} y1={botBoardY} x2={cx + 0.9} y2={botBoardY}
