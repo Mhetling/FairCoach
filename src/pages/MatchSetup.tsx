@@ -16,6 +16,8 @@ import { getSportConfig } from "@/lib/sportConfig";
 import {
   RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
 } from "@/lib/hockeyRinks";
+import { type HockeyLine, saveHockeyLines, autoSplitLines } from "@/lib/hockeyLines";
+import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
 import {
   HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER, HANDBALL_RULES_OVERVIEW,
   type HandballFormatId,
@@ -276,6 +278,8 @@ export function MatchSetup() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
   const [basketballPickerOpen, setBasketballPickerOpen] = useState(false);
+  const [hockeyLines, setHockeyLines] = useState<HockeyLine[]>([]);
+  const [lineSetupOpen, setLineSetupOpen] = useState(false);
 
   const configInitialized = useRef(false);
   const playersInitialized = useRef(false);
@@ -383,6 +387,9 @@ export function MatchSetup() {
         track_goals: trackGoals,
         selected_player_ids: Array.from(selectedIds),
       });
+      if (isHockey && hockeyLines.length > 0) {
+        saveHockeyLines(match.id, hockeyLines);
+      }
       navigate(`/matches/${match.id}`);
     } catch (err) {
       toast({ title: "Kunne ikke opprette kamp", description: getDisplayError(err), variant: "error" });
@@ -827,6 +834,49 @@ export function MatchSetup() {
           </CardContent>
         </Card>
 
+        {/* Hockey line setup */}
+        {isHockey && (
+          <Card>
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Rekker</Label>
+                <button type="button"
+                  onClick={() => {
+                    if (hockeyLines.length === 0) {
+                      setHockeyLines(autoSplitLines(Array.from(selectedIds), 2));
+                    }
+                    setLineSetupOpen(true);
+                  }}
+                  className="text-xs font-medium text-ink underline underline-offset-2">
+                  {hockeyLines.length > 0 ? "Endre rekker" : "Sett opp rekker"}
+                </button>
+              </div>
+              {hockeyLines.length > 0 ? (
+                <div className="space-y-1.5">
+                  {hockeyLines.map(line => {
+                    const names = line.playerIds
+                      .map(id => players?.find(p => p.id === id))
+                      .filter(Boolean)
+                      .map(p => p!.name.split(" ")[0])
+                      .join(", ");
+                    return (
+                      <div key={line.id}
+                        className="flex items-baseline gap-2 rounded-lg border border-ink/10 bg-cream-dark px-3 py-2">
+                        <span className="text-xs font-semibold text-ink-muted w-14 shrink-0">{line.name}</span>
+                        <span className="text-sm text-ink truncate">{names || "—"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-ink-muted">
+                  Valgfritt. Gjør det enkelt å bytte en hel rekke under kampen.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Button
           variant="accent"
           className="w-full"
@@ -837,6 +887,19 @@ export function MatchSetup() {
         </Button>
 
       </div>
+
+      {lineSetupOpen && players && (
+        <HockeyLineSetupDialog
+          players={players.filter(p => selectedIds.has(p.id)).map((p): LineSetupPlayer => ({
+            id: p.id,
+            name: p.name,
+            jerseyNumber: p.jersey_number,
+          }))}
+          initialLines={hockeyLines}
+          onSave={(lines) => { setHockeyLines(lines); setLineSetupOpen(false); }}
+          onClose={() => setLineSetupOpen(false)}
+        />
+      )}
     </AppShell>
   );
 }

@@ -71,6 +71,30 @@ export function useSubstitute(matchId: string | undefined) {
   });
 }
 
+export function useBulkSubstitute(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      swaps: Array<{ comingOnId: string; goingOffId: string; goingOffTotalSeconds: number }>;
+      atSeconds: number;
+    }) => {
+      if (!matchId || args.swaps.length === 0) return;
+      await Promise.all(
+        args.swaps.flatMap(({ comingOnId, goingOffId, goingOffTotalSeconds }) => [
+          supabase.from("match_players").update({ on_field: true }).eq("match_id", matchId).eq("player_id", comingOnId),
+          supabase.from("match_players").update({ on_field: false, total_play_seconds: goingOffTotalSeconds }).eq("match_id", matchId).eq("player_id", goingOffId),
+        ]),
+      );
+      const events = args.swaps.flatMap(({ comingOnId, goingOffId }) => [
+        { match_id: matchId, player_id: goingOffId, event_type: "off" as const, at_seconds: args.atSeconds },
+        { match_id: matchId, player_id: comingOnId, event_type: "on" as const, at_seconds: args.atSeconds },
+      ]);
+      await supabase.from("match_events").insert(events);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
 export function useEndPeriod(matchId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

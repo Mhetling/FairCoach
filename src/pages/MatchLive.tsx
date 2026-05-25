@@ -30,6 +30,7 @@ import {
   useMatchDetail,
   useMatchEvents,
   useSubstitute,
+  useBulkSubstitute,
   useUpdateAllPlayerMetas,
   useUpdateMatch,
   useUpdatePlayerMeta,
@@ -51,6 +52,8 @@ import {
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
 } from "@/lib/hockeyRinks";
+import { type HockeyLine, loadHockeyLines, saveHockeyLines, autoSplitLines } from "@/lib/hockeyLines";
+import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
 import { HockeyRinkHalfContent } from "@/components/HockeyRink";
 import { SPORT_CONFIGS } from "@/lib/sportConfig";
 
@@ -714,6 +717,87 @@ function ClockAdjustDialog({ periodElapsed, onSave, onClose }: {
   );
 }
 
+// ─── Line change dialog ───────────────────────────────────────────────────────
+
+const LINE_BG_LIGHT  = ["bg-blue-50",    "bg-green-50",    "bg-orange-50"   ];
+const LINE_BORDER    = ["border-blue-200","border-green-200","border-orange-200"];
+const LINE_TEXT_COL  = ["text-blue-700", "text-green-700", "text-orange-700"];
+
+function LineChangeDialog({ lines, players, activeLineId, onConfirm, onClose }: {
+  lines: HockeyLine[];
+  players: RichMatchPlayer[];
+  activeLineId: string | null;
+  onConfirm: (lineId: string) => void;
+  onClose: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  function chipLabel(id: string) {
+    const mp = players.find(p => p.player_id === id);
+    if (!mp) return id;
+    const num = mp.player.jersey_number;
+    const first = mp.player.name.split(" ")[0];
+    return num != null ? `#${num} ${first}` : first;
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Bytt rekke</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          {lines.map((line, li) => {
+            const isActive = line.id === activeLineId;
+            const benchCount = line.playerIds.filter(id => {
+              const mp = players.find(p => p.player_id === id);
+              return mp && !mp.on_field;
+            }).length;
+            return (
+              <button key={line.id} type="button"
+                disabled={isActive}
+                onClick={() => setSelectedId(line.id)}
+                className={cn(
+                  "w-full rounded-xl border-2 p-4 text-left transition-colors",
+                  isActive
+                    ? cn("opacity-60 cursor-default", LINE_BG_LIGHT[li], LINE_BORDER[li])
+                    : selectedId === line.id
+                    ? "border-ink bg-ink/5"
+                    : "border-ink/15 bg-cream-dark hover:bg-ink/5",
+                )}>
+                <div className="flex items-center justify-between">
+                  <span className={cn("font-semibold", isActive ? LINE_TEXT_COL[li] : "text-ink")}>
+                    {line.name}
+                    {isActive && <span className="ml-2 text-xs font-normal">— på isen</span>}
+                  </span>
+                  {!isActive && (
+                    <span className="text-xs text-ink-muted">
+                      {benchCount} på benken
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {line.playerIds.map(chipLabel).join(", ")}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button variant="ghost" className="flex-1" onClick={onClose}>Avbryt</Button>
+          <Button variant="accent" className="flex-1"
+            disabled={!selectedId}
+            onClick={() => selectedId && onConfirm(selectedId)}>
+            Bytt inn
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Goal dialog ──────────────────────────────────────────────────────────────
 
 function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCancel }: {
@@ -898,6 +982,7 @@ export function MatchLive() {
   const { data: team } = useTeam(data?.match.team_id);
   const updateMatch = useUpdateMatch(matchId);
   const substitute = useSubstitute(matchId);
+  const bulkSubstitute = useBulkSubstitute(matchId);
   const endPeriod = useEndPeriod(matchId);
   const logGoal = useLogGoal(matchId);
   const { data: matchEvents = [] } = useMatchEvents(matchId);
@@ -917,6 +1002,9 @@ export function MatchLive() {
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [clockAdjustOpen, setClockAdjustOpen] = useState(false);
   const [playerDetailId, setPlayerDetailId] = useState<string | null>(null);
+  const [hockeyLines, setHockeyLines] = useState<HockeyLine[]>([]);
+  const [lineSetupOpen, setLineSetupOpen] = useState(false);
+  const [lineChangeOpen, setLineChangeOpen] = useState(false);
   const [, setSwapVersion] = useState(0); // triggers re-render after field swaps
 
   const cameOnAt = useRef<Record<string, number>>({});
@@ -976,6 +1064,11 @@ export function MatchLive() {
     setScoreHome(match.score_home ?? 0);
     setScoreAway(match.score_away ?? 0);
     setFormation(match.formation);
+
+    if (match.sport_id === "hockey" && matchId) {
+      const saved = loadHockeyLines(matchId);
+      if (saved) setHockeyLines(saved);
+    }
 
     const initCameOn: Record<string, number> = {};
     const initPos: Record<string, number> = {};
@@ -1272,6 +1365,49 @@ export function MatchLive() {
     await updateMatch.mutateAsync({ status: "paused", elapsed_seconds: currentElapsed });
   }
 
+  async function handleLineChange(incomingLineId: string) {
+    const incomingLine = hockeyLines.find(l => l.id === incomingLineId);
+    if (!incomingLine) return;
+
+    // Outgoing: current non-GK field players, ordered by position slot
+    const fieldSkaters = fieldPlayers
+      .filter(mp => !isInGKSlot(mp))
+      .sort((a, b) => (positionMap.current[a.player_id] ?? 0) - (positionMap.current[b.player_id] ?? 0));
+
+    // Incoming: bench players from the selected line, in line order
+    const incomingBench = incomingLine.playerIds
+      .map(id => players.find(p => p.player_id === id))
+      .filter((mp): mp is RichMatchPlayer => !!mp && !mp.on_field);
+
+    const swapCount = Math.min(fieldSkaters.length, incomingBench.length);
+    if (swapCount === 0) { setLineChangeOpen(false); return; }
+
+    const swaps = fieldSkaters.slice(0, swapCount).map((goingOff, i) => ({
+      comingOnId: incomingBench[i].player_id,
+      goingOffId: goingOff.player_id,
+      goingOffTotalSeconds: getPlayTime(goingOff),
+    }));
+
+    swaps.forEach(({ comingOnId, goingOffId }) => {
+      const posIdx = positionMap.current[goingOffId] ?? 0;
+      endZone(goingOffId, elapsed);
+      const zones = zoneAccumRef.current[goingOffId];
+      if (zones?.length) {
+        const mp = playersRef.current.find(p => p.player_id === goingOffId);
+        updatePlayerMeta.mutate({ playerId: goingOffId, meta: { ...(mp?.meta ?? {}), zones } });
+      }
+      positionMap.current[comingOnId] = posIdx;
+      delete positionMap.current[goingOffId];
+      cameOnAt.current[comingOnId] = elapsed;
+      delete cameOnAt.current[goingOffId];
+      startZone(comingOnId, posIdx, elapsed);
+    });
+
+    setLineChangeOpen(false);
+    setSwapVersion(v => v + 1);
+    await bulkSubstitute.mutateAsync({ swaps, atSeconds: elapsed });
+  }
+
   function handleClockAdjust(newPeriodElapsed: number) {
     const newElapsed = periodStartAt.current + newPeriodElapsed;
     clockBaseElapsed.current = newElapsed;
@@ -1523,6 +1659,58 @@ export function MatchLive() {
           </div>
         </div>}
 
+        {/* Hockey line bar */}
+        {isHockey && match.status !== "finished" && (() => {
+          const activeLineId = hockeyLines.length > 0
+            ? (hockeyLines.map(l => ({
+                id: l.id,
+                n: l.playerIds.filter(id => players.find(p => p.player_id === id)?.on_field).length,
+              })).sort((a, b) => b.n - a.n)[0]?.id ?? null)
+            : null;
+          const activeLine = hockeyLines.find(l => l.id === activeLineId);
+          return (
+            <div className="mb-3 flex items-center gap-3 rounded-xl border border-ink/10 bg-cream-dark px-4 py-2.5">
+              <div className="flex-1 min-w-0">
+                {activeLine ? (
+                  <>
+                    <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
+                      {activeLine.name} på isen
+                    </p>
+                    <p className="text-sm text-ink truncate">
+                      {activeLine.playerIds
+                        .map(id => players.find(p => p.player_id === id))
+                        .filter(Boolean)
+                        .map(mp => mp!.player.name.split(" ")[0])
+                        .join(", ")}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-ink-muted">Ingen rekker satt opp</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {hockeyLines.length > 0 && (
+                  <Button variant="ghost" size="sm"
+                    className="border border-ink/20 text-sm font-semibold"
+                    onClick={() => setLineChangeOpen(true)}>
+                    Bytt rekke →
+                  </Button>
+                )}
+                <button type="button"
+                  onClick={() => {
+                    if (hockeyLines.length === 0) {
+                      setHockeyLines(autoSplitLines(players.map(p => p.player_id), 2));
+                    }
+                    setLineSetupOpen(true);
+                  }}
+                  className="text-xs text-ink-muted underline underline-offset-2">
+                  {hockeyLines.length > 0 ? "Endre" : "Sett opp"}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Pitch + optional formation badge — full bleed on mobile */}
         <div className="-mx-4 relative mb-1">
           {isEleven && match.status !== "finished" && (
@@ -1701,6 +1889,41 @@ export function MatchLive() {
                 ]);
                 setPlayerDetailId(null);
               }}
+            />
+          );
+        })()}
+
+        {/* Hockey line setup dialog */}
+        {lineSetupOpen && (
+          <HockeyLineSetupDialog
+            players={players.map((mp): LineSetupPlayer => ({
+              id: mp.player_id,
+              name: mp.player.name,
+              jerseyNumber: mp.player.jersey_number,
+            }))}
+            initialLines={hockeyLines}
+            onSave={(lines) => {
+              setHockeyLines(lines);
+              if (matchId) saveHockeyLines(matchId, lines);
+              setLineSetupOpen(false);
+            }}
+            onClose={() => setLineSetupOpen(false)}
+          />
+        )}
+
+        {/* Hockey line change dialog */}
+        {lineChangeOpen && hockeyLines.length > 0 && (() => {
+          const activeLineId = hockeyLines.map(l => ({
+            id: l.id,
+            n: l.playerIds.filter(id => players.find(p => p.player_id === id)?.on_field).length,
+          })).sort((a, b) => b.n - a.n)[0]?.id ?? null;
+          return (
+            <LineChangeDialog
+              lines={hockeyLines}
+              players={players}
+              activeLineId={activeLineId}
+              onConfirm={handleLineChange}
+              onClose={() => setLineChangeOpen(false)}
             />
           );
         })()}
