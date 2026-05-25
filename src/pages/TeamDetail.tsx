@@ -21,7 +21,7 @@ import { getSportConfig } from "@/lib/sportConfig";
 import type { SportPosition } from "@/lib/sportConfig";
 import { cn } from "@/lib/utils";
 import type { Player, SportId } from "@/types/database";
-import { ELEVEN_FORMATIONS, DEFAULT_11_FORMATION } from "@/lib/formations";
+import { ELEVEN_FORMATIONS } from "@/lib/formations";
 import { HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER } from "@/types/handball-formats";
 import { BASKETBALL_FORMATS, BASKETBALL_FORMAT_ORDER } from "@/types/basketball-formats";
 import { RINK_SPECS, FORMAT_DEFAULTS } from "@/lib/hockeyRinks";
