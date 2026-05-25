@@ -164,6 +164,7 @@ export function useLogGoal(matchId: string | undefined) {
       team: "home" | "away";
       scorerPlayerId: string | null;
       assistPlayerId: string | null;
+      assist2PlayerId?: string | null;
       atSeconds: number;
     }) => {
       if (!matchId) return;
@@ -175,6 +176,7 @@ export function useLogGoal(matchId: string | undefined) {
         meta: {
           team: args.team,
           ...(args.assistPlayerId ? { assist_player_id: args.assistPlayerId } : {}),
+          ...(args.assist2PlayerId ? { assist2_player_id: args.assist2PlayerId } : {}),
         },
       });
       if (error) throw error;

@@ -14,7 +14,7 @@ import { useCreateMatch } from "@/hooks/useMatches";
 import { ELEVEN_FORMATIONS, DEFAULT_11_FORMATION } from "@/lib/formations";
 import { getSportConfig } from "@/lib/sportConfig";
 import {
-  RINK_SPECS, FORMAT_DEFAULTS, type HockeyFormat,
+  RINK_SPECS, RINK_POSITIONS, FORMAT_DEFAULTS, type HockeyFormat,
 } from "@/lib/hockeyRinks";
 import { type HockeyLine, saveHockeyLines, autoSplitLines } from "@/lib/hockeyLines";
 import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
@@ -843,7 +843,8 @@ export function MatchSetup() {
                 <button type="button"
                   onClick={() => {
                     if (hockeyLines.length === 0) {
-                      setHockeyLines(autoSplitLines(Array.from(selectedIds), 2));
+                      const skaterPos = RINK_POSITIONS[hockeyFormat].filter(p => !p.isGoalie);
+                      setHockeyLines(autoSplitLines(skaterPos, Array.from(selectedIds), 2));
                     }
                     setLineSetupOpen(true);
                   }}
@@ -854,10 +855,13 @@ export function MatchSetup() {
               {hockeyLines.length > 0 ? (
                 <div className="space-y-1.5">
                   {hockeyLines.map(line => {
-                    const names = line.playerIds
-                      .map(id => players?.find(p => p.id === id))
+                    const names = line.slots
+                      .filter(s => s.playerId)
+                      .map(s => {
+                        const p = players?.find(p => p.id === s.playerId);
+                        return p ? `${s.positionLabel}: ${p.name.split(" ")[0]}` : null;
+                      })
                       .filter(Boolean)
-                      .map(p => p!.name.split(" ")[0])
                       .join(", ");
                     return (
                       <div key={line.id}
@@ -895,6 +899,7 @@ export function MatchSetup() {
             name: p.name,
             jerseyNumber: p.jersey_number,
           }))}
+          skaterPositions={RINK_POSITIONS[hockeyFormat].filter(p => !p.isGoalie)}
           initialLines={hockeyLines}
           onSave={(lines) => { setHockeyLines(lines); setLineSetupOpen(false); }}
           onClose={() => setLineSetupOpen(false)}

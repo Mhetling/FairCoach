@@ -62,10 +62,6 @@ function PlayerDialog({
 
   function handleOpenChange(next: boolean) { if (!next) onClose(); }
 
-  if (open && player?.id !== undefined) {
-    if (name !== player.name && name === "") resetTo(player);
-  }
-
   async function onSubmit() {
     if (!name.trim() || !isValidPlayerName(name.trim())) return;
     try {
@@ -96,7 +92,7 @@ function PlayerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={isEdit ? (e) => e.preventDefault() : undefined}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Rediger spiller" : "Ny spiller"}</DialogTitle>
         </DialogHeader>
@@ -105,7 +101,7 @@ function PlayerDialog({
             <Label htmlFor="player-name">Fornavn</Label>
             <Input
               id="player-name"
-              autoFocus
+              autoComplete="off"
               placeholder="F.eks. Magnus eller Magnus E."
               value={name}
               maxLength={30}
@@ -287,7 +283,8 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
           {/* Name */}
           <div className="space-y-1">
             <Label htmlFor="settings-name">Lagnavn</Label>
-            <Input id="settings-name" value={name} onChange={(e) => setName(e.target.value)}
+            <Input id="settings-name" value={name} autoComplete="off"
+              onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onSave()} />
           </div>
 
@@ -581,7 +578,7 @@ export function TeamDetail() {
 
       {teamId && (
         <>
-          <PlayerDialog open={playerDialogOpen} onClose={closePlayerDialog} teamId={teamId} sportId={(team?.sport_id ?? "soccer") as SportId} player={editingPlayer} positions={sportPositions} />
+          <PlayerDialog key={editingPlayer?.id ?? "new"} open={playerDialogOpen} onClose={closePlayerDialog} teamId={teamId} sportId={(team?.sport_id ?? "soccer") as SportId} player={editingPlayer} positions={sportPositions} />
           <TeamSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} teamId={teamId} />
         </>
       )}

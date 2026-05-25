@@ -85,7 +85,7 @@ export function TeamList() {
                 placeholder="F.eks. Lyn G10 Rød"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                autoFocus
+                autoComplete="off"
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">

@@ -38,6 +38,8 @@ const ZONE_LABEL: Record<string, string> = {
   keeper: "Keeper",
   "l-back": "V. back", back: "Back", "r-back": "H. back",
   "l-wing": "V. kant", wing: "Kant", "r-wing": "H. kant",
+  "l-ving": "V. ving", ving: "Ving", "r-ving": "H. ving",
+  senter: "Senter",
   strek: "Strek",
   "l-midt": "V. midt", midt: "Midt", "r-midt": "H. midt",
   "l-angrep": "V. angrep", angrep: "Angrep", "r-angrep": "H. angrep",
@@ -45,7 +47,9 @@ const ZONE_LABEL: Record<string, string> = {
 const ZONE_ORDER = [
   "keeper",
   "l-back", "back", "r-back",
+  "l-ving", "ving", "r-ving",
   "l-wing", "wing", "r-wing",
+  "senter",
   "strek",
   "l-midt", "midt", "r-midt",
   "l-angrep", "angrep", "r-angrep",

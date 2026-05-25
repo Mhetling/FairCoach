@@ -52,7 +52,7 @@ import {
 import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
 } from "@/lib/hockeyRinks";
-import { type HockeyLine, loadHockeyLines, saveHockeyLines, autoSplitLines } from "@/lib/hockeyLines";
+import { type HockeyLine, loadHockeyLines, saveHockeyLines, autoSplitLines, linePlayerIds } from "@/lib/hockeyLines";
 import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
 import { HockeyRinkHalfContent } from "@/components/HockeyRink";
 import { SPORT_CONFIGS } from "@/lib/sportConfig";
@@ -112,6 +112,8 @@ export const ZONE_DISPLAY: Record<string, string> = {
   keeper: "Keeper",
   "l-back": "V. back", back: "Back", "r-back": "H. back",
   "l-wing": "V. kant", wing: "Kant", "r-wing": "H. kant",
+  "l-ving": "V. ving", ving: "Ving", "r-ving": "H. ving",
+  senter: "Senter",
   strek: "Strek",
   "l-midt": "V. midt", midt: "Midt", "r-midt": "H. midt",
   "l-angrep": "V. angrep", angrep: "Angrep", "r-angrep": "H. angrep",
@@ -119,7 +121,9 @@ export const ZONE_DISPLAY: Record<string, string> = {
 const ZONE_ORDER = [
   "keeper",
   "l-back", "back", "r-back",
+  "l-ving", "ving", "r-ving",
   "l-wing", "wing", "r-wing",
+  "senter",
   "strek",
   "l-midt", "midt", "r-midt",
   "l-angrep", "angrep", "r-angrep",
@@ -136,10 +140,19 @@ function computeZoneForSlot(
   if (sportId === "hockey") {
     const rinkPos = RINK_POSITIONS[hockeyFmt][posIdx];
     if (rinkPos?.isGoalie) return "keeper";
-    const x = rinkPos?.x ?? 50;
-    const y = rinkPos?.y ?? 60;
-    const side = x < 42 ? "l-" : x > 58 ? "r-" : "";
-    return y >= 70 ? `${side}back` : y < 60 ? `${side}wing` : "midt";
+    switch (rinkPos?.id) {
+      case 'ld': return "l-back";
+      case 'rd': return "r-back";
+      case 'c':  return "senter";
+      case 'lw': return "l-ving";
+      case 'rw': return "r-ving";
+      default: {
+        const x = rinkPos?.x ?? 50;
+        const y = rinkPos?.y ?? 60;
+        const side = x < 42 ? "l-" : x > 58 ? "r-" : "";
+        return y >= 70 ? `${side}back` : y < 65 ? `${side}ving` : "senter";
+      }
+    }
   }
   if (sportId === "handball") {
     const fmtId = resolveHandballFormatId(formation, playersOnField);
@@ -750,7 +763,7 @@ function LineChangeDialog({ lines, players, activeLineId, onConfirm, onClose }: 
         <div className="space-y-2">
           {lines.map((line, li) => {
             const isActive = line.id === activeLineId;
-            const benchCount = line.playerIds.filter(id => {
+            const benchCount = linePlayerIds(line).filter(id => {
               const mp = players.find(p => p.player_id === id);
               return mp && !mp.on_field;
             }).length;
@@ -778,7 +791,14 @@ function LineChangeDialog({ lines, players, activeLineId, onConfirm, onClose }: 
                   )}
                 </div>
                 <p className="mt-1 text-xs text-ink-muted">
-                  {line.playerIds.map(chipLabel).join(", ")}
+                  {line.slots.map(s => {
+                    if (!s.playerId) return null;
+                    const mp = players.find(p => p.player_id === s.playerId);
+                    if (!mp) return null;
+                    const first = mp.player.name.split(" ")[0];
+                    const num = mp.player.jersey_number;
+                    return `${s.positionLabel}: ${num != null ? `#${num} ` : ""}${first}`;
+                  }).filter(Boolean).join("  ·  ")}
                 </p>
               </button>
             );
@@ -800,29 +820,32 @@ function LineChangeDialog({ lines, players, activeLineId, onConfirm, onClose }: 
 
 // ─── Goal dialog ──────────────────────────────────────────────────────────────
 
-function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCancel }: {
+function GoalDialog({ open, team, opponent, teamName, players, isHockey, onConfirm, onCancel }: {
   open: boolean;
   team: "home" | "away";
   opponent: string | null;
   teamName: string | null;
   players: RichMatchPlayer[];
-  onConfirm: (scorerId: string | null, assistId: string | null) => void;
+  isHockey: boolean;
+  onConfirm: (scorerId: string | null, assist1Id: string | null, assist2Id: string | null) => void;
   onCancel: () => void;
 }) {
   const [scorerId, setScorerId] = useState<string | null>(null);
-  const [assistId, setAssistId] = useState<string | null>(null);
+  const [assist1Id, setAssist1Id] = useState<string | null>(null);
+  const [assist2Id, setAssist2Id] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) { setScorerId(null); setAssistId(null); }
+    if (open) { setScorerId(null); setAssist1Id(null); setAssist2Id(null); }
   }, [open]);
 
   const isHome = team === "home";
   const teamLabel = isHome ? (teamName ?? "Vi") : (opponent ?? "Motstander");
 
-  const onField = players.filter((p) => p.on_field)
-    .sort((a, b) => (a.player.jersey_number ?? 999) - (b.player.jersey_number ?? 999));
-  const bench = players.filter((p) => !p.on_field)
-    .sort((a, b) => (a.player.jersey_number ?? 999) - (b.player.jersey_number ?? 999));
+  // Hockey: only show players currently on the ice
+  const pool = (isHockey
+    ? players.filter(p => p.on_field)
+    : players
+  ).sort((a, b) => (a.player.jersey_number ?? 999) - (b.player.jersey_number ?? 999));
 
   function chipLabel(mp: RichMatchPlayer) {
     return mp.player.jersey_number != null
@@ -861,22 +884,20 @@ function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCanc
     );
   }
 
-  function PlayerSection({ label, pool, selectedId, onSelectId, excludeId }: {
-    label: string; pool: typeof onField; selectedId: string | null;
-    onSelectId: (id: string | null) => void; excludeId?: string | null;
+  function PlayerSection({ label, filteredPool, selectedId, onSelectId, noneLabel }: {
+    label: string;
+    filteredPool: typeof pool;
+    selectedId: string | null;
+    onSelectId: (id: string | null) => void;
+    noneLabel: string;
   }) {
-    const field = pool.filter((p) => !excludeId || p.player_id !== excludeId);
-    const onFieldPlayers = field.filter((p) => p.on_field);
-    const benchPlayers = field.filter((p) => !p.on_field);
+    const onFieldPlayers = filteredPool.filter(p => p.on_field);
+    const benchPlayers = filteredPool.filter(p => !p.on_field);
     return (
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">{label}</p>
         <div className="flex flex-wrap gap-2">
-          <NoneChip
-            label={label === "Målscorer" ? "Ukjent" : "Ingen"}
-            selected={selectedId === null}
-            onSelect={() => onSelectId(null)}
-          />
+          <NoneChip label={noneLabel} selected={selectedId === null} onSelect={() => onSelectId(null)} />
           {onFieldPlayers.map((mp) => (
             <PlayerChip key={mp.player_id} mp={mp}
               selected={selectedId === mp.player_id}
@@ -892,7 +913,7 @@ function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCanc
               dim={selectedId !== null && selectedId !== mp.player_id} />
           ))}
         </div>
-        {onFieldPlayers.length > 0 && (
+        {!isHockey && onFieldPlayers.length > 0 && (
           <p className="mt-1.5 text-xs text-ink-muted">
             <span className="inline-block h-2 w-2 rounded-full border border-green-400 bg-green-50 mr-1" />
             Grønn = på banen nå
@@ -913,20 +934,39 @@ function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCanc
           <div className="space-y-5">
             <PlayerSection
               label="Målscorer"
-              pool={[...onField, ...bench]}
+              filteredPool={pool}
               selectedId={scorerId}
+              noneLabel="Ukjent"
               onSelectId={(id) => {
                 setScorerId(id);
-                if (id && assistId === id) setAssistId(null);
+                if (id === assist1Id) setAssist1Id(null);
+                if (id === assist2Id) setAssist2Id(null);
               }}
             />
             <PlayerSection
-              label="Assist"
-              pool={[...onField, ...bench]}
-              selectedId={assistId}
-              onSelectId={setAssistId}
-              excludeId={scorerId}
+              label="Assist 1"
+              filteredPool={pool.filter(p => p.player_id !== scorerId && p.player_id !== assist2Id)}
+              selectedId={assist1Id}
+              noneLabel="Ingen"
+              onSelectId={(id) => {
+                setAssist1Id(id);
+                if (id === scorerId) setScorerId(null);
+                if (id === assist2Id) setAssist2Id(null);
+              }}
             />
+            {isHockey && (
+              <PlayerSection
+                label="Assist 2"
+                filteredPool={pool.filter(p => p.player_id !== scorerId && p.player_id !== assist1Id)}
+                selectedId={assist2Id}
+                noneLabel="Ingen"
+                onSelectId={(id) => {
+                  setAssist2Id(id);
+                  if (id === scorerId) setScorerId(null);
+                  if (id === assist1Id) setAssist1Id(null);
+                }}
+              />
+            )}
           </div>
         ) : (
           <p className="text-sm text-ink-muted">Mål for motstanderlaget registreres uten målscorer.</p>
@@ -934,7 +974,7 @@ function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCanc
 
         <div className="mt-4 flex gap-2">
           <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
-          <Button variant="accent" className="flex-1" onClick={() => onConfirm(scorerId, assistId)}>
+          <Button variant="accent" className="flex-1" onClick={() => onConfirm(scorerId, assist1Id, assist2Id)}>
             Registrer mål
           </Button>
         </div>
@@ -1369,41 +1409,44 @@ export function MatchLive() {
     const incomingLine = hockeyLines.find(l => l.id === incomingLineId);
     if (!incomingLine) return;
 
-    // Outgoing: current non-GK field players, ordered by position slot
-    const fieldSkaters = fieldPlayers
-      .filter(mp => !isInGKSlot(mp))
-      .sort((a, b) => (positionMap.current[a.player_id] ?? 0) - (positionMap.current[b.player_id] ?? 0));
+    const swaps: Array<{ comingOnId: string; goingOffId: string; goingOffTotalSeconds: number }> = [];
 
-    // Incoming: bench players from the selected line, in line order
-    const incomingBench = incomingLine.playerIds
-      .map(id => players.find(p => p.player_id === id))
-      .filter((mp): mp is RichMatchPlayer => !!mp && !mp.on_field);
+    for (const slot of incomingLine.slots) {
+      if (!slot.playerId) continue;
+      const incomingMp = players.find(p => p.player_id === slot.playerId);
+      if (!incomingMp || incomingMp.on_field) continue; // skip if already on ice
 
-    const swapCount = Math.min(fieldSkaters.length, incomingBench.length);
-    if (swapCount === 0) { setLineChangeOpen(false); return; }
+      // Find the rink position index for this slot
+      const posIdx = hockeyRinkPositions.findIndex(p => p.id === slot.positionId);
+      if (posIdx === -1) continue;
 
-    const swaps = fieldSkaters.slice(0, swapCount).map((goingOff, i) => ({
-      comingOnId: incomingBench[i].player_id,
-      goingOffId: goingOff.player_id,
-      goingOffTotalSeconds: getPlayTime(goingOff),
-    }));
+      // Find who is currently in that position on the field
+      const outgoingMp = fieldPlayers.find(
+        mp => positionMap.current[mp.player_id] === posIdx && !isInGKSlot(mp),
+      );
+      if (!outgoingMp) continue;
 
-    swaps.forEach(({ comingOnId, goingOffId }) => {
-      const posIdx = positionMap.current[goingOffId] ?? 0;
-      endZone(goingOffId, elapsed);
-      const zones = zoneAccumRef.current[goingOffId];
+      swaps.push({
+        comingOnId: slot.playerId,
+        goingOffId: outgoingMp.player_id,
+        goingOffTotalSeconds: getPlayTime(outgoingMp),
+      });
+
+      endZone(outgoingMp.player_id, elapsed);
+      const zones = zoneAccumRef.current[outgoingMp.player_id];
       if (zones?.length) {
-        const mp = playersRef.current.find(p => p.player_id === goingOffId);
-        updatePlayerMeta.mutate({ playerId: goingOffId, meta: { ...(mp?.meta ?? {}), zones } });
+        const mp = playersRef.current.find(p => p.player_id === outgoingMp.player_id);
+        updatePlayerMeta.mutate({ playerId: outgoingMp.player_id, meta: { ...(mp?.meta ?? {}), zones } });
       }
-      positionMap.current[comingOnId] = posIdx;
-      delete positionMap.current[goingOffId];
-      cameOnAt.current[comingOnId] = elapsed;
-      delete cameOnAt.current[goingOffId];
-      startZone(comingOnId, posIdx, elapsed);
-    });
+      positionMap.current[slot.playerId] = posIdx;
+      delete positionMap.current[outgoingMp.player_id];
+      cameOnAt.current[slot.playerId] = elapsed;
+      delete cameOnAt.current[outgoingMp.player_id];
+      startZone(slot.playerId, posIdx, elapsed);
+    }
 
     setLineChangeOpen(false);
+    if (swaps.length === 0) return;
     setSwapVersion(v => v + 1);
     await bulkSubstitute.mutateAsync({ swaps, atSeconds: elapsed });
   }
@@ -1484,7 +1527,7 @@ export function MatchLive() {
     setGoalDialog({ team });
   }
 
-  async function confirmGoal(scorerId: string | null, assistId: string | null) {
+  async function confirmGoal(scorerId: string | null, assist1Id: string | null, assist2Id: string | null) {
     if (!goalDialog) return;
     const { team } = goalDialog;
     const newHome = team === "home" ? scoreHome + 1 : scoreHome;
@@ -1494,7 +1537,7 @@ export function MatchLive() {
     setGoalDialog(null);
     await Promise.all([
       updateMatch.mutateAsync({ score_home: newHome, score_away: newAway }),
-      logGoal.mutateAsync({ team, scorerPlayerId: scorerId, assistPlayerId: assistId, atSeconds: elapsed }),
+      logGoal.mutateAsync({ team, scorerPlayerId: scorerId, assistPlayerId: assist1Id, assist2PlayerId: assist2Id, atSeconds: elapsed }),
     ]);
   }
 
@@ -1664,7 +1707,7 @@ export function MatchLive() {
           const activeLineId = hockeyLines.length > 0
             ? (hockeyLines.map(l => ({
                 id: l.id,
-                n: l.playerIds.filter(id => players.find(p => p.player_id === id)?.on_field).length,
+                n: linePlayerIds(l).filter(id => players.find(p => p.player_id === id)?.on_field).length,
               })).sort((a, b) => b.n - a.n)[0]?.id ?? null)
             : null;
           const activeLine = hockeyLines.find(l => l.id === activeLineId);
@@ -1677,11 +1720,14 @@ export function MatchLive() {
                       {activeLine.name} på isen
                     </p>
                     <p className="text-sm text-ink truncate">
-                      {activeLine.playerIds
-                        .map(id => players.find(p => p.player_id === id))
+                      {activeLine.slots
+                        .filter(s => s.playerId)
+                        .map(s => {
+                          const mp = players.find(p => p.player_id === s.playerId);
+                          return mp ? `${s.positionLabel}: ${mp.player.name.split(" ")[0]}` : null;
+                        })
                         .filter(Boolean)
-                        .map(mp => mp!.player.name.split(" ")[0])
-                        .join(", ")}
+                        .join("  ")}
                     </p>
                   </>
                 ) : (
@@ -1699,7 +1745,11 @@ export function MatchLive() {
                 <button type="button"
                   onClick={() => {
                     if (hockeyLines.length === 0) {
-                      setHockeyLines(autoSplitLines(players.map(p => p.player_id), 2));
+                      const skaterPos = RINK_POSITIONS[hockeyFormat].filter(p => !p.isGoalie);
+                      const skaterIds = players
+                        .filter(mp => !hockeyRinkPositions[positionMap.current[mp.player_id] ?? -1]?.isGoalie)
+                        .map(p => p.player_id);
+                      setHockeyLines(autoSplitLines(skaterPos, skaterIds, 2));
                     }
                     setLineSetupOpen(true);
                   }}
@@ -1850,6 +1900,7 @@ export function MatchLive() {
             opponent={match.opponent}
             teamName={team?.name ?? null}
             players={players}
+            isHockey={isHockey}
             onConfirm={confirmGoal}
             onCancel={() => setGoalDialog(null)}
           />
@@ -1896,11 +1947,14 @@ export function MatchLive() {
         {/* Hockey line setup dialog */}
         {lineSetupOpen && (
           <HockeyLineSetupDialog
-            players={players.map((mp): LineSetupPlayer => ({
-              id: mp.player_id,
-              name: mp.player.name,
-              jerseyNumber: mp.player.jersey_number,
-            }))}
+            players={players
+              .filter(mp => !hockeyRinkPositions[positionMap.current[mp.player_id] ?? -1]?.isGoalie)
+              .map((mp): LineSetupPlayer => ({
+                id: mp.player_id,
+                name: mp.player.name,
+                jerseyNumber: mp.player.jersey_number,
+              }))}
+            skaterPositions={RINK_POSITIONS[hockeyFormat].filter(p => !p.isGoalie)}
             initialLines={hockeyLines}
             onSave={(lines) => {
               setHockeyLines(lines);
@@ -1915,7 +1969,7 @@ export function MatchLive() {
         {lineChangeOpen && hockeyLines.length > 0 && (() => {
           const activeLineId = hockeyLines.map(l => ({
             id: l.id,
-            n: l.playerIds.filter(id => players.find(p => p.player_id === id)?.on_field).length,
+            n: linePlayerIds(l).filter(id => players.find(p => p.player_id === id)?.on_field).length,
           })).sort((a, b) => b.n - a.n)[0]?.id ?? null;
           return (
             <LineChangeDialog
