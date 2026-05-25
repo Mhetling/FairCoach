@@ -289,15 +289,20 @@ export function MatchSetup() {
       setPeriodLengthSecs(team.default_period_length_seconds ?? c.defaultPeriodLengthSeconds);
       setPeriodCount(team.default_period_count ?? c.defaultPeriodCount);
       setTrackGoals(c.trackGoalsDefault);
-      if (team.sport_id === "handball" && team.default_players_on_field) {
-        const n = team.default_players_on_field;
-        const inferred: HandballFormatId = n <= 4 ? '4er' : n === 5 ? '5er' : n === 6 ? '6er' : '7er';
-        selectHandballFormat(inferred);
+      if (team.sport_id === "handball") {
+        const fmt = (team.default_formation as HandballFormatId | null) ?? DEFAULT_HANDBALL;
+        if (fmt in HANDBALL_FORMATS) selectHandballFormat(fmt);
       }
-      if (team.sport_id === "basketball" && team.default_players_on_field) {
-        const n = team.default_players_on_field;
-        const inferred: BasketballFormatId = n <= 3 ? '3x3' : n === 4 ? 'easybasket' : '5v5-senior';
-        selectBasketballFormat(inferred);
+      if (team.sport_id === "basketball") {
+        const fmt = (team.default_formation as BasketballFormatId | null) ?? DEFAULT_BASKETBALL;
+        if (fmt in BASKETBALL_FORMATS) selectBasketballFormat(fmt);
+      }
+      if (team.sport_id === "hockey" && team.default_formation) {
+        const fmt = team.default_formation as HockeyFormat;
+        if (HOCKEY_FORMATS.includes(fmt)) selectHockeyFormat(fmt);
+      }
+      if (team.sport_id === "soccer" && team.default_formation) {
+        setFormation(team.default_formation);
       }
     }
   }, [team]);

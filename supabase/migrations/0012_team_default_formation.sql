@@ -1,0 +1,2 @@
+ALTER TABLE public.teams
+  ADD COLUMN IF NOT EXISTS default_formation TEXT DEFAULT NULL;

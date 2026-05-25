@@ -21,6 +21,11 @@ import { getSportConfig } from "@/lib/sportConfig";
 import type { SportPosition } from "@/lib/sportConfig";
 import { cn } from "@/lib/utils";
 import type { Player, SportId } from "@/types/database";
+import { ELEVEN_FORMATIONS, DEFAULT_11_FORMATION } from "@/lib/formations";
+import { HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER } from "@/types/handball-formats";
+import { BASKETBALL_FORMATS, BASKETBALL_FORMAT_ORDER } from "@/types/basketball-formats";
+import { RINK_SPECS, FORMAT_DEFAULTS } from "@/lib/hockeyRinks";
+import type { HockeyFormat } from "@/lib/hockeyRinks";
 
 // ─── Player create / edit dialog ─────────────────────────────────────────────
 
@@ -182,19 +187,51 @@ function OptionBtn({ active, onClick, children }: { active: boolean; onClick: ()
   );
 }
 
+const HOCKEY_FORMAT_LIST: HockeyFormat[] = ["3v3-small", "3v3-quarter", "5v5-small", "5v5-full"];
+
 function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose: () => void; teamId: string }) {
   const navigate = useNavigate();
   const { data: team } = useTeam(teamId);
   const update = useUpdateTeam();
   const remove = useDeleteTeam();
 
-  const config = team ? getSportConfig(team.sport_id as SportId) : null;
+  const sportId = (team?.sport_id ?? "soccer") as SportId;
+  const config = team ? getSportConfig(sportId) : null;
+  const isHandball = sportId === "handball";
+  const isBasketball = sportId === "basketball";
+  const isHockey = sportId === "hockey";
 
   const [name, setName] = useState("");
   const [players, setPlayers] = useState<number | null>(null);
   const [periodSecs, setPeriodSecs] = useState<number | null>(null);
   const [periodCount, setPeriodCount] = useState<number | null>(null);
+  const [formation, setFormation] = useState<string | null>(null);
   const initialized = useRef(false);
+
+  function applyHandballFormat(fmt: string) {
+    const spec = HANDBALL_FORMATS[fmt as keyof typeof HANDBALL_FORMATS];
+    if (!spec) return;
+    setFormation(fmt);
+    setPlayers(spec.playersOnCourt);
+    setPeriodSecs(spec.periodLength * 60);
+    setPeriodCount(spec.periodCount);
+  }
+
+  function applyBasketballFormat(fmt: string) {
+    const spec = BASKETBALL_FORMATS[fmt as keyof typeof BASKETBALL_FORMATS];
+    if (!spec) return;
+    setFormation(fmt);
+    setPlayers(spec.playersOnCourt);
+    setPeriodSecs(spec.periodLength * 60);
+    setPeriodCount(spec.periodCount);
+  }
+
+  function applyHockeyFormat(fmt: HockeyFormat) {
+    setFormation(fmt);
+    setPlayers(RINK_SPECS[fmt].playersOnField);
+    setPeriodSecs(FORMAT_DEFAULTS[fmt].periodLengthSeconds);
+    setPeriodCount(FORMAT_DEFAULTS[fmt].periodCount);
+  }
 
   useEffect(() => {
     if (open && team && !initialized.current) {
@@ -203,6 +240,7 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
       setPlayers(team.default_players_on_field);
       setPeriodSecs(team.default_period_length_seconds);
       setPeriodCount(team.default_period_count);
+      setFormation(team.default_formation ?? null);
     }
     if (!open) initialized.current = false;
   }, [open, team]);
@@ -216,6 +254,7 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
         default_players_on_field: players,
         default_period_length_seconds: periodSecs,
         default_period_count: periodCount,
+        default_formation: formation,
       });
       toast({ title: "Lagret", variant: "success" });
       onClose();
@@ -234,6 +273,8 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
       toast({ title: "Kunne ikke slette", description: getDisplayError(err), variant: "error" });
     }
   }
+
+  const hasDefaults = !!(players || periodSecs || periodCount || formation);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -258,44 +299,132 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
                 <p className="text-xs text-ink-muted">Forhåndsvelg format når du starter ny kamp</p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Spillere på banen</Label>
-                <div className={cn("grid gap-1.5",
-                  config.playersOnFieldOptions.length <= 4 ? "grid-cols-4" : "grid-cols-5")}>
-                  {config.playersOnFieldOptions.map((n) => (
-                    <OptionBtn key={n} active={players === n} onClick={() => setPlayers(players === n ? null : n)}>
-                      {n}er
-                    </OptionBtn>
-                  ))}
+              {/* ── Handball: format buttons ── */}
+              {isHandball && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Format</Label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {HANDBALL_FORMAT_ORDER.map((fmt) => (
+                      <OptionBtn key={fmt} active={formation === fmt}
+                        onClick={() => applyHandballFormat(fmt)}>
+                        {HANDBALL_FORMATS[fmt].playersOnCourt}er
+                      </OptionBtn>
+                    ))}
+                  </div>
+                  {formation && HANDBALL_FORMATS[formation as keyof typeof HANDBALL_FORMATS] && (
+                    <p className="text-xs text-ink-muted">
+                      {HANDBALL_FORMATS[formation as keyof typeof HANDBALL_FORMATS].label}
+                      {" · "}{HANDBALL_FORMATS[formation as keyof typeof HANDBALL_FORMATS].ageGroup}
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Omgangslengde</Label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {config.periodLengthOptions.filter((o) => o.seconds > 0).map((o) => (
-                    <OptionBtn key={o.seconds} active={periodSecs === o.seconds}
-                      onClick={() => setPeriodSecs(periodSecs === o.seconds ? null : o.seconds)}>
-                      {o.label}
-                    </OptionBtn>
-                  ))}
+              {/* ── Basketball: format buttons ── */}
+              {isBasketball && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Format</Label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {BASKETBALL_FORMAT_ORDER.map((fmt) => (
+                      <OptionBtn key={fmt} active={formation === fmt}
+                        onClick={() => applyBasketballFormat(fmt)}>
+                        {BASKETBALL_FORMATS[fmt].shortLabel}
+                      </OptionBtn>
+                    ))}
+                  </div>
+                  {formation && BASKETBALL_FORMATS[formation as keyof typeof BASKETBALL_FORMATS] && (
+                    <p className="text-xs text-ink-muted">
+                      {BASKETBALL_FORMATS[formation as keyof typeof BASKETBALL_FORMATS].label}
+                      {" · "}{BASKETBALL_FORMATS[formation as keyof typeof BASKETBALL_FORMATS].ageGroup}
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Antall omganger</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {config.periodCountOptions.map((n) => (
-                    <OptionBtn key={n} active={periodCount === n}
-                      onClick={() => setPeriodCount(periodCount === n ? null : n)}>
-                      {n === 1 ? "1 omgang" : `${n} omganger`}
-                    </OptionBtn>
-                  ))}
+              {/* ── Hockey: format buttons ── */}
+              {isHockey && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Format</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {HOCKEY_FORMAT_LIST.map((fmt) => (
+                      <OptionBtn key={fmt} active={formation === fmt}
+                        onClick={() => applyHockeyFormat(fmt)}>
+                        {RINK_SPECS[fmt].label}
+                      </OptionBtn>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {(players || periodSecs || periodCount) && (
-                <button type="button" onClick={() => { setPlayers(null); setPeriodSecs(null); setPeriodCount(null); }}
+              {/* ── Soccer: players + optional formation ── */}
+              {!isHandball && !isBasketball && !isHockey && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Spillere på banen</Label>
+                    <div className={cn("grid gap-1.5",
+                      config.playersOnFieldOptions.length <= 4 ? "grid-cols-4" : "grid-cols-5")}>
+                      {config.playersOnFieldOptions.map((n) => (
+                        <OptionBtn key={n} active={players === n}
+                          onClick={() => {
+                            const next = players === n ? null : n;
+                            setPlayers(next);
+                            if (next !== 11) setFormation(null);
+                          }}>
+                          {n}er
+                        </OptionBtn>
+                      ))}
+                    </div>
+                  </div>
+
+                  {players === 11 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Formasjon</Label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {ELEVEN_FORMATIONS.map((f) => (
+                          <OptionBtn key={f.name} active={formation === f.name}
+                            onClick={() => setFormation(formation === f.name ? null : f.name)}>
+                            {f.name}
+                          </OptionBtn>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Period length (not handball/basketball — format sets it) ── */}
+              {!isHandball && !isBasketball && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Omgangslengde</Label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {config.periodLengthOptions.filter((o) => o.seconds > 0).map((o) => (
+                      <OptionBtn key={o.seconds} active={periodSecs === o.seconds}
+                        onClick={() => setPeriodSecs(periodSecs === o.seconds ? null : o.seconds)}>
+                        {o.label}
+                      </OptionBtn>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Period count (not handball/basketball) ── */}
+              {!isHandball && !isBasketball && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Antall omganger</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {config.periodCountOptions.map((n) => (
+                      <OptionBtn key={n} active={periodCount === n}
+                        onClick={() => setPeriodCount(periodCount === n ? null : n)}>
+                        {n === 1 ? "1 omgang" : `${n} omganger`}
+                      </OptionBtn>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasDefaults && (
+                <button type="button"
+                  onClick={() => { setPlayers(null); setPeriodSecs(null); setPeriodCount(null); setFormation(null); }}
                   className="text-xs text-ink-muted underline">
                   Fjern standard
                 </button>

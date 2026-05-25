@@ -52,6 +52,7 @@ import {
   RINK_SPECS, RINK_POSITIONS, resolveHockeyFormat, type HockeyFormat,
 } from "@/lib/hockeyRinks";
 import { HockeyRinkHalfContent } from "@/components/HockeyRink";
+import { SPORT_CONFIGS } from "@/lib/sportConfig";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -562,7 +563,8 @@ function PlayerDetailDialog({ mp, sportId, currentPlaySeconds, events, liveZones
               <div key={e.id} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm bg-cream-dark">
                 <span className="w-5 text-center">
                   {e.event_type === "on"   ? "↑" :
-                   e.event_type === "off"  ? "↓" : "⚽"}
+                   e.event_type === "off"  ? "↓" :
+                   (SPORT_CONFIGS[sportId as keyof typeof SPORT_CONFIGS]?.icon ?? "⚽")}
                 </span>
                 <span className="text-ink-muted">{eventLabel(e)}</span>
               </div>

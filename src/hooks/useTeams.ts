@@ -80,6 +80,7 @@ export function useUpdateTeam() {
       default_players_on_field?: number | null;
       default_period_length_seconds?: number | null;
       default_period_count?: number | null;
+      default_formation?: string | null;
     }) => {
       const { id, ...fields } = input;
       const { data, error } = await supabase.from("teams").update(fields).eq("id", id).select().single();

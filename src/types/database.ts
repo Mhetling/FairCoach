@@ -21,6 +21,7 @@ export type Team = {
   default_players_on_field: number | null;
   default_period_length_seconds: number | null;
   default_period_count: number | null;
+  default_formation: string | null;
   created_at: string;
 };
 
