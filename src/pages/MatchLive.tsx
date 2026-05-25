@@ -665,6 +665,55 @@ function PlayerDetailDialog({ mp, sportId, currentPlaySeconds, events, liveZones
   );
 }
 
+// ─── Clock adjust dialog ──────────────────────────────────────────────────────
+
+function ClockAdjustDialog({ periodElapsed, onSave, onClose }: {
+  periodElapsed: number;
+  onSave: (newPeriodElapsed: number) => void;
+  onClose: () => void;
+}) {
+  const [secs, setSecs] = useState(periodElapsed);
+  const adj = (delta: number) => setSecs((s) => Math.max(0, s + delta));
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Juster klokka</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-ink-muted">
+          Sett klokken til riktig tid før du starter igjen.
+        </p>
+        <div className="flex items-center justify-center gap-3 py-4">
+          <button type="button" onClick={() => adj(-60)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 text-sm font-bold text-ink active:bg-ink/10">
+            −1'
+          </button>
+          <button type="button" onClick={() => adj(-10)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 text-sm font-bold text-ink active:bg-ink/10">
+            −10"
+          </button>
+          <span className="w-28 text-center font-mono text-4xl font-bold tabular-nums">
+            {fmtTime(secs)}
+          </span>
+          <button type="button" onClick={() => adj(10)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 text-sm font-bold text-ink active:bg-ink/10">
+            +10"
+          </button>
+          <button type="button" onClick={() => adj(60)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 text-sm font-bold text-ink active:bg-ink/10">
+            +1'
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={onClose}>Avbryt</Button>
+          <Button variant="accent" className="flex-1" onClick={() => onSave(secs)}>Lagre</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Goal dialog ──────────────────────────────────────────────────────────────
 
 function GoalDialog({ open, team, opponent, teamName, players, onConfirm, onCancel }: {
@@ -866,6 +915,7 @@ export function MatchLive() {
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [clockAdjustOpen, setClockAdjustOpen] = useState(false);
   const [playerDetailId, setPlayerDetailId] = useState<string | null>(null);
   const [, setSwapVersion] = useState(0); // triggers re-render after field swaps
 
@@ -1222,6 +1272,14 @@ export function MatchLive() {
     await updateMatch.mutateAsync({ status: "paused", elapsed_seconds: currentElapsed });
   }
 
+  function handleClockAdjust(newPeriodElapsed: number) {
+    const newElapsed = periodStartAt.current + newPeriodElapsed;
+    clockBaseElapsed.current = newElapsed;
+    setElapsed(newElapsed);
+    setClockAdjustOpen(false);
+    updateMatch.mutate({ elapsed_seconds: newElapsed });
+  }
+
   async function handleEndPeriod() {
     const currentElapsed = computeLiveElapsed();
     clockStartedAt.current = null;
@@ -1397,6 +1455,13 @@ export function MatchLive() {
             <div className="font-display text-6xl font-bold tabular-nums leading-none">
               {fmtTime(periodElapsed)}
             </div>
+            {match.status === "paused" && (
+              <button type="button"
+                onClick={() => setClockAdjustOpen(true)}
+                className="mt-1 text-xs text-cream/50 hover:text-cream/80 underline underline-offset-2">
+                Juster klokka
+              </button>
+            )}
           </div>
           {match.status === "finished" ? (
             <div className="text-sm font-medium opacity-60">Kamp avsluttet</div>
@@ -1639,6 +1704,15 @@ export function MatchLive() {
             />
           );
         })()}
+
+        {/* Clock adjust dialog */}
+        {clockAdjustOpen && (
+          <ClockAdjustDialog
+            periodElapsed={periodElapsed}
+            onSave={handleClockAdjust}
+            onClose={() => setClockAdjustOpen(false)}
+          />
+        )}
 
         {/* Confirm end match dialog */}
         <Dialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
