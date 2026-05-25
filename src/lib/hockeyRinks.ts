@@ -120,14 +120,14 @@ export interface RinkPosition {
 export const RINK_POSITIONS: Record<HockeyFormat, RinkPosition[]> = {
   // U7–U9: MV + 2-1 formasjon (3 utespillere)
   '3v3-small': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 95, isGoalie: true  },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 86, isGoalie: true  },
     { id: 'u1', label: '1',  fullName: 'Utespiller', x: 28, y: 74, isGoalie: false },
     { id: 'u2', label: '2',  fullName: 'Utespiller', x: 72, y: 74, isGoalie: false },
     { id: 'u3', label: '3',  fullName: 'Utespiller', x: 50, y: 58, isGoalie: false },
   ],
   // U10–U11: samme 2-1 som 3v3-small (kampvisning bruker vertikalt halvfelt)
   '3v3-quarter': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 95, isGoalie: true  },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',    x: 50, y: 86, isGoalie: true  },
     { id: 'u1', label: '1',  fullName: 'Utespiller', x: 28, y: 74, isGoalie: false },
     { id: 'u2', label: '2',  fullName: 'Utespiller', x: 72, y: 74, isGoalie: false },
     { id: 'u3', label: '3',  fullName: 'Utespiller', x: 50, y: 58, isGoalie: false },
@@ -135,7 +135,7 @@ export const RINK_POSITIONS: Record<HockeyFormat, RinkPosition[]> = {
   // U12: MV + 2-1-2 formasjon (5 utespillere)
   // C ved midtlinjen, vinger i nøytralsonen nær rundvant, backs i forsvarssonen
   '5v5-small': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 96, isGoalie: true  },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 87, isGoalie: true  },
     { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 30, y: 78, isGoalie: false },
     { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 70, y: 78, isGoalie: false },
     { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 60, isGoalie: false },
@@ -144,7 +144,7 @@ export const RINK_POSITIONS: Record<HockeyFormat, RinkPosition[]> = {
   ],
   // U13+: MV + 2-1-2 formasjon
   '5v5-full': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 96, isGoalie: true  },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 92, isGoalie: true  },
     { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 30, y: 78, isGoalie: false },
     { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 70, y: 78, isGoalie: false },
     { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 60, isGoalie: false },
