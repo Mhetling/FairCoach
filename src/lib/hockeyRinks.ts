@@ -23,6 +23,8 @@ export interface RinkSpec {
   centerCircleRadius: number | null;
   /** Tegn faceoff-sirkler i hjørnene (kun 5v5) */
   hasFaceoffCircles: boolean;
+  /** Radius på faceoff-sirkler i meter (null = ingen sirkler) */
+  faceoffCircleRadius: number | null;
   /** Antall spillere på isen inkl. målvakt */
   playersOnField: number;
   /** 'vertical' = mål øverst/nederst, 'horizontal' = mål til venstre/høyre */
@@ -42,6 +44,7 @@ export const RINK_SPECS: Record<HockeyFormat, RinkSpec> = {
     blueLineDistance: null,
     centerCircleRadius: 2.5,
     hasFaceoffCircles: false,
+    faceoffCircleRadius: null,
     playersOnField: 4,
     orientation: 'vertical',
   },
@@ -58,6 +61,7 @@ export const RINK_SPECS: Record<HockeyFormat, RinkSpec> = {
     blueLineDistance: null,
     centerCircleRadius: 2.5,
     hasFaceoffCircles: false,
+    faceoffCircleRadius: null,
     playersOnField: 4,
     orientation: 'horizontal',
   },
@@ -73,6 +77,7 @@ export const RINK_SPECS: Record<HockeyFormat, RinkSpec> = {
     blueLineDistance: null,
     centerCircleRadius: 3.5,
     hasFaceoffCircles: true,
+    faceoffCircleRadius: 2.5,
     playersOnField: 6,
     orientation: 'vertical',
   },
@@ -88,6 +93,7 @@ export const RINK_SPECS: Record<HockeyFormat, RinkSpec> = {
     blueLineDistance: 17.4,
     centerCircleRadius: 4.5,
     hasFaceoffCircles: true,
+    faceoffCircleRadius: 4.5,
     playersOnField: 6,
     orientation: 'vertical',
   },
@@ -127,22 +133,23 @@ export const RINK_POSITIONS: Record<HockeyFormat, RinkPosition[]> = {
     { id: 'u3', label: '3',  fullName: 'Utespiller', x: 50, y: 58, isGoalie: false },
   ],
   // U12: MV + 2-1-2 formasjon (5 utespillere)
+  // C ved midtlinjen, vinger i nøytralsonen nær rundvant, backs i forsvarssonen
   '5v5-small': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 92, isGoalie: true  },
-    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 78, isGoalie: false },
-    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 78, isGoalie: false },
-    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 64, isGoalie: false },
-    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 53, isGoalie: false },
-    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 53, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 93, isGoalie: true  },
+    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 30, y: 78, isGoalie: false },
+    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 70, y: 78, isGoalie: false },
+    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 51, isGoalie: false },
+    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 14, y: 63, isGoalie: false },
+    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 86, y: 63, isGoalie: false },
   ],
   // U13+: MV + 2-1-2 formasjon
   '5v5-full': [
-    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 92, isGoalie: true  },
-    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 28, y: 78, isGoalie: false },
-    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 72, y: 78, isGoalie: false },
-    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 64, isGoalie: false },
-    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 22, y: 53, isGoalie: false },
-    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 78, y: 53, isGoalie: false },
+    { id: 'g',  label: 'MV', fullName: 'Målvakt',        x: 50, y: 93, isGoalie: true  },
+    { id: 'ld', label: 'LB', fullName: 'Venstre back',   x: 30, y: 78, isGoalie: false },
+    { id: 'rd', label: 'HB', fullName: 'Høyre back',     x: 70, y: 78, isGoalie: false },
+    { id: 'c',  label: 'C',  fullName: 'Senter',         x: 50, y: 51, isGoalie: false },
+    { id: 'lw', label: 'LV', fullName: 'Venstre ving',   x: 14, y: 63, isGoalie: false },
+    { id: 'rw', label: 'HV', fullName: 'Høyre ving',     x: 86, y: 63, isGoalie: false },
   ],
 };
 

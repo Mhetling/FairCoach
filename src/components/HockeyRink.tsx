@@ -7,15 +7,13 @@ const ICE          = "#E8F4FB";
 const BOARD_STROKE = "#8BBDD4";
 const RED          = "#CC0000";
 const BLUE         = "#0044BB";
-const CREASE_FILL  = "rgba(0,100,220,0.13)";
-const CREASE_STROKE = "rgba(0,80,180,0.5)";
+const CREASE_FILL  = "rgba(173, 216, 230, 0.45)";
+const CREASE_STROKE = RED;
 const GOAL_FILL    = "rgba(255,255,255,0.92)";
-const GOAL_STROKE  = "#CC0000";
+const GOAL_STROKE  = RED;
 
 // ─── D-shaped crease path helpers ────────────────────────────────────────────
-// The crease is a D: two straight sides from the goal posts perpendicular to
-// the goal line, joined by a semicircle whose centre is the middle of the goal.
-// All creases use sweep=1 (CW) so the arc bulges toward centre ice.
+// Straight sides from goal posts + circular arc bulging toward centre ice.
 
 function creaseVertTop(cx: number, GL: number, GW: number, CR2: number): string {
   const h = GW / 2;
@@ -29,7 +27,6 @@ function creaseVertBot(cx: number, L: number, GL: number, GW: number, CR2: numbe
   return `M ${cx - h},${L - GL} L ${cx - h},${L - GL - dy} A ${CR2},${CR2} 0 0,0 ${cx + h},${L - GL - dy} L ${cx + h},${L - GL} Z`;
 }
 
-// Horizontal rink: left goal opens rightward (sweep=1), right goal leftward (sweep=0).
 function creaseHorizLeft(GL: number, cy: number, GW: number, CR2: number): string {
   const h = GW / 2;
   const dx = Math.sqrt(Math.max(0, CR2 * CR2 - h * h));
@@ -44,12 +41,12 @@ function creaseHorizRight(W: number, GL: number, cy: number, GW: number, CR2: nu
 
 // ─── Faceoff circle with hash marks ──────────────────────────────────────────
 function FaceoffCircle({ cx, cy, r, sw }: { cx: number; cy: number; r: number; sw: number }) {
-  const lw   = sw * 0.7;
-  const tick = r * 0.28;
+  const lw   = sw * 0.6;
+  const tick = r * 0.22;
   return (
     <g>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={RED} strokeWidth={lw} />
-      <circle cx={cx} cy={cy} r={sw * 1.2} fill={RED} />
+      <circle cx={cx} cy={cy} r={sw * 1.0} fill={RED} />
       {/* Hash marks at 12 / 3 / 6 / 9 o'clock */}
       <line x1={cx - tick} y1={cy - r} x2={cx + tick} y2={cy - r} stroke={RED} strokeWidth={lw} />
       <line x1={cx - tick} y1={cy + r} x2={cx + tick} y2={cy + r} stroke={RED} strokeWidth={lw} />
@@ -100,7 +97,7 @@ export function HockeyRink({ format, children, className }: HockeyRinkProps) {
 
 function RinkSurface({ spec }: { spec: RinkSpec }) {
   const { width: W, length: L, cornerRadius: CR } = spec;
-  const sw = W / 40;
+  const sw = W / 50;
   const rinkPath = roundedRect(0, 0, W, L, CR);
   return (
     <>
@@ -115,29 +112,29 @@ function RinkSurface({ spec }: { spec: RinkSpec }) {
 function VerticalMarkings({ spec }: { spec: RinkSpec }) {
   const { width: W, length: L, goalLineDistance: GL, goalWidth: GW,
     creaseRadius: CR2, centerCircleRadius: CCR,
-    blueLineDistance: BL, hasFaceoffCircles } = spec;
+    blueLineDistance: BL, hasFaceoffCircles, faceoffCircleRadius: FCR } = spec;
 
   const cx  = W / 2;
-  const sw  = W / 70;
+  const sw  = W / 90;
   const gd  = Math.min(0.55, GL * 0.8);
 
   const topCrease = creaseVertTop(cx, GL, GW, CR2);
   const botCrease = creaseVertBot(cx, L, GL, GW, CR2);
 
-  // Zone faceoff positions
+  // Zone faceoff positions — ~20% from each side board
   const fxL = W * 0.27, fxR = W * 0.73;
-  const fyTop = GL * 2.4, fyBot = L - GL * 2.4;
-  const fcr = CR2 * 0.9;
+  const fyTop = GL * 2.2, fyBot = L - GL * 2.2;
+  const fcr = FCR ?? CR2;
 
-  // Neutral zone faceoff dots (midway between each blue line and centre)
-  const fyNeutTop = BL !== null ? (BL + L / 2) / 2 : null;
-  const fyNeutBot = BL !== null ? L - (BL + L / 2) / 2 : null;
+  // Neutral zone faceoff dots: just inside the neutral zone from each blue line
+  const fyNeutTop = BL !== null ? BL + 1.5 : null;
+  const fyNeutBot = BL !== null ? L - BL - 1.5 : null;
 
   return (
     <>
       {/* ─── Keeper-halvsirkler (D-form) ─── */}
-      <path d={topCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
-      <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
+      <path d={topCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
+      <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
 
       {/* ─── Mållinjer ─── */}
       <line x1={0} y1={GL}     x2={W} y2={GL}     stroke={RED} strokeWidth={sw} />
@@ -152,8 +149,8 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
       {/* ─── Blålinjer ─── */}
       {BL !== null && (
         <>
-          <line x1={0} y1={BL}     x2={W} y2={BL}     stroke={BLUE} strokeWidth={sw * 2} />
-          <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2} />
+          <line x1={0} y1={BL}     x2={W} y2={BL}     stroke={BLUE} strokeWidth={sw * 2.5} />
+          <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2.5} />
         </>
       )}
 
@@ -164,7 +161,7 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
       {CCR !== null && (
         <>
           <circle cx={cx} cy={L / 2} r={CCR} fill="none" stroke={BLUE} strokeWidth={sw} />
-          <circle cx={cx} cy={L / 2} r={sw * 1.2} fill={RED} />
+          <circle cx={cx} cy={L / 2} r={sw * 1.0} fill={RED} />
         </>
       )}
 
@@ -178,13 +175,13 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
         </>
       )}
 
-      {/* ─── Nøytralsoneprikker ─── */}
+      {/* ─── Nøytralsoneprikker (rett innenfor blålinjene) ─── */}
       {fyNeutTop !== null && fyNeutBot !== null && (
         <>
-          <circle cx={fxL} cy={fyNeutTop} r={sw * 1.2} fill={RED} />
-          <circle cx={fxR} cy={fyNeutTop} r={sw * 1.2} fill={RED} />
-          <circle cx={fxL} cy={fyNeutBot} r={sw * 1.2} fill={RED} />
-          <circle cx={fxR} cy={fyNeutBot} r={sw * 1.2} fill={RED} />
+          <circle cx={fxL} cy={fyNeutTop} r={sw * 1.0} fill={RED} />
+          <circle cx={fxR} cy={fyNeutTop} r={sw * 1.0} fill={RED} />
+          <circle cx={fxL} cy={fyNeutBot} r={sw * 1.0} fill={RED} />
+          <circle cx={fxR} cy={fyNeutBot} r={sw * 1.0} fill={RED} />
         </>
       )}
     </>
@@ -198,7 +195,7 @@ function HorizontalMarkings({ spec }: { spec: RinkSpec }) {
     creaseRadius: CR2, centerCircleRadius: CCR } = spec;
 
   const cy  = L / 2;
-  const sw  = L / 50;
+  const sw  = L / 70;
   const gd  = Math.min(0.55, GL * 0.8);
 
   const leftCrease  = creaseHorizLeft(GL, cy, GW, CR2);
@@ -207,8 +204,8 @@ function HorizontalMarkings({ spec }: { spec: RinkSpec }) {
   return (
     <>
       {/* ─── Keeper-halvsirkler (D-form) ─── */}
-      <path d={leftCrease}  fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
-      <path d={rightCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
+      <path d={leftCrease}  fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
+      <path d={rightCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
 
       {/* ─── Mållinjer (vertikale streker) ─── */}
       <line x1={GL}     y1={0} x2={GL}     y2={L} stroke={RED} strokeWidth={sw} />
@@ -227,7 +224,7 @@ function HorizontalMarkings({ spec }: { spec: RinkSpec }) {
       {CCR !== null && (
         <>
           <circle cx={W / 2} cy={cy} r={CCR} fill="none" stroke={BLUE} strokeWidth={sw} />
-          <circle cx={W / 2} cy={cy} r={sw * 1.2} fill={RED} />
+          <circle cx={W / 2} cy={cy} r={sw * 1.0} fill={RED} />
         </>
       )}
     </>
@@ -261,20 +258,25 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
   const spec = rawSpec.orientation === "horizontal" ? RINK_SPECS["3v3-small"] : rawSpec;
   const { width: W, length: L, goalLineDistance: GL, goalWidth: GW,
     creaseRadius: CR2, blueLineDistance: BL, cornerRadius: CR,
-    centerCircleRadius: CCR, hasFaceoffCircles } = spec;
+    centerCircleRadius: CCR, hasFaceoffCircles, faceoffCircleRadius: FCR } = spec;
 
   const cx    = W / 2;
-  const sw    = W / 70;
+  const sw    = W / 90;
   const halfY = L / 2;
+  const gd    = Math.min(0.55, GL * 0.8);
 
   const botCrease = creaseVertBot(cx, L, GL, GW, CR2);
   const boardPath = roundedRect(0, 0, W, L, CR);
-  const bw = W / 40;
+  const bw = W / 50;
 
-  // Zone faceoff positions (defence half)
+  const fcr = FCR ?? CR2;
+
+  // Forsvarssone faceoff-posisjoner
   const fxL = W * 0.27, fxR = W * 0.73;
-  const fyBot = L - GL * 2.4;
-  const fcr = CR2 * 0.9;
+  const fyBot = L - GL * 2.2;
+
+  // Nøytralsone-prikker: rett innenfor blålinjen mot nøytralsonen
+  const fyNeutDot = BL !== null ? L - BL - 1.5 : null;
 
   return (
     <svg
@@ -293,13 +295,21 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
       {CCR !== null && (
         <>
           <circle cx={cx} cy={halfY} r={CCR} fill="none" stroke={BLUE} strokeWidth={sw} />
-          <circle cx={cx} cy={halfY} r={sw * 1.2} fill={RED} />
+          <circle cx={cx} cy={halfY} r={sw * 1.0} fill={RED} />
         </>
       )}
 
-      {/* Blålinje i eget halvfelt (kun 5v5-full) */}
+      {/* Blålinje i eget halvfelt */}
       {BL !== null && (
-        <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2} />
+        <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2.5} />
+      )}
+
+      {/* Nøytralsoneprikker — rett innenfor blålinjen */}
+      {fyNeutDot !== null && (
+        <>
+          <circle cx={fxL} cy={fyNeutDot} r={sw * 1.0} fill={RED} />
+          <circle cx={fxR} cy={fyNeutDot} r={sw * 1.0} fill={RED} />
+        </>
       )}
 
       {/* Faceoff-sirkler i forsvarssonen */}
@@ -310,8 +320,15 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
         </>
       )}
 
+      {/* Mållinje */}
+      <line x1={0} y1={L - GL} x2={W} y2={L - GL} stroke={RED} strokeWidth={sw} />
+
       {/* Målgård (D-form, åpner mot senter) */}
-      <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
+      <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.9} />
+
+      {/* Mål */}
+      <rect x={cx - GW / 2} y={L - gd} width={GW} height={gd}
+        fill={GOAL_FILL} stroke={GOAL_STROKE} strokeWidth={sw * 0.7} rx={sw * 0.3} />
     </svg>
   );
 }
