@@ -263,10 +263,11 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const { width: W, length: L, threePointRadius: TPR, keyWidth: KW, keyDepth: KD,
     basketDistance: BD, centerCircleRadius: CCR, freeThrowRadius: FTR, halfCourt: HC } = spec;
   const cx = W / 2;
-  const sw = W / 50;
-  const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.45, strokeWidth: sw };
+  const sw = W / 100;
+  const line = { fill: "none" as const, stroke: "white", strokeOpacity: 0.5, strokeWidth: sw };
+  const dash = { ...line, strokeDasharray: `${sw * 4} ${sw * 3}` };
   const dot  = { fill: "white", fillOpacity: 0.5, stroke: "none" as const };
-  const keyFill = { fill: "white", fillOpacity: 0.06 };
+  const keyFill = { fill: "white", fillOpacity: 0.07 };
   const kx = (W - KW) / 2;
 
   // Three-point path centred on the basket (not the baseline).
@@ -315,9 +316,11 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
       {HC && <>
         <rect x={kx} y={0} width={KW} height={KD} {...keyFill} />
         <rect x={kx} y={0} width={KW} height={KD} {...line} />
-        <path d={`M ${kx},${KD} A ${FTR},${FTR} 0 0,1 ${kx + KW},${KD}`} {...line} />
+        {/* FT circle: solid half inside key (curves into key), dashed half outside */}
+        <path d={`M ${cx - FTR},${KD} A ${FTR},${FTR} 0 0,1 ${cx + FTR},${KD}`} {...line} />
+        <path d={`M ${cx - FTR},${KD} A ${FTR},${FTR} 0 0,0 ${cx + FTR},${KD}`} {...dash} />
         <path d={`M ${cx - 1.25},${topBasketY} A 1.25,1.25 0 0,1 ${cx + 1.25},${topBasketY}`}
-          {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
+          {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw }} />
         <circle cx={cx} cy={topBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
         <line x1={cx - 0.9} y1={topBoardY} x2={cx + 0.9} y2={topBoardY}
           {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
@@ -327,9 +330,11 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
       {/* Bottom basket — always shown */}
       <rect x={kx} y={L - KD} width={KW} height={KD} {...keyFill} />
       <rect x={kx} y={L - KD} width={KW} height={KD} {...line} />
-      <path d={`M ${kx},${L - KD} A ${FTR},${FTR} 0 0,0 ${kx + KW},${L - KD}`} {...line} />
+      {/* FT circle: solid half inside key (curves toward basket), dashed half outside */}
+      <path d={`M ${cx - FTR},${L - KD} A ${FTR},${FTR} 0 0,1 ${cx + FTR},${L - KD}`} {...line} />
+      <path d={`M ${cx - FTR},${L - KD} A ${FTR},${FTR} 0 0,0 ${cx + FTR},${L - KD}`} {...dash} />
       <path d={`M ${cx - 1.25},${botBasketY} A 1.25,1.25 0 0,0 ${cx + 1.25},${botBasketY}`}
-        {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw * 0.8 }} />
+        {...{ fill: "rgba(255,255,255,0.06)", stroke: "white", strokeOpacity: 0.35, strokeWidth: sw }} />
       <circle cx={cx} cy={botBasketY} r={0.45} {...{ fill: "#ff6b6b", fillOpacity: 0.75, stroke: "white", strokeWidth: sw * 1.5 }} />
       <line x1={cx - 0.9} y1={botBoardY} x2={cx + 0.9} y2={botBoardY}
         {...{ stroke: "white", strokeOpacity: 0.7, strokeWidth: sw * 2, fill: "none" }} />
