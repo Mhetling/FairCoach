@@ -248,6 +248,17 @@ function HandballCourtMarkings({ formatId }: { formatId: string }) {
 
 // ─── Basketball court markings ────────────────────────────────────────────────
 
+// Returns the y-coordinate to start the half-court view and the total view height.
+// Crops above the three-point arc (or above the FT line for no-arc formats).
+function getBasketballCrop(spec: BasketballCourtSpec): { cropStart: number; viewHeight: number } {
+  if (spec.halfCourt) return { cropStart: 0, viewHeight: spec.length };
+  const { length: L, basketDistance: BD, threePointRadius: TPR, keyDepth: KD } = spec;
+  const topMark = TPR != null ? L - BD - TPR : L - KD;
+  const buf     = TPR != null ? 1.5 : 2.0;
+  const cropStart = Math.max(L / 2, topMark - buf);
+  return { cropStart, viewHeight: L - cropStart + 1 };  // +1 m below baseline for breathing room
+}
+
 function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const { width: W, length: L, threePointRadius: TPR, keyWidth: KW, keyDepth: KD,
     basketDistance: BD, centerCircleRadius: CCR, freeThrowRadius: FTR, halfCourt: HC } = spec;
@@ -276,11 +287,9 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
     ].join(" ");
   }
 
-  // Extend view 1 m below own baseline so basket & backboard have breathing room.
-  const EXTRA = HC ? 0 : 1;
-  const viewBox = HC
-    ? `0 0 ${W} ${L}`
-    : `0 ${L / 2} ${W} ${L / 2 + EXTRA}`;
+  // Crop the view to just above the three-point arc (or FT line) to remove empty space.
+  const { cropStart, viewHeight } = getBasketballCrop(spec);
+  const viewBox = `0 ${cropStart} ${W} ${viewHeight}`;
 
   // Basket positions
   const botBasketY = L - BD;          // bottom basket centre y
@@ -289,15 +298,16 @@ function BasketballCourtMarkings({ spec }: { spec: BasketballCourtSpec }) {
   const topBoardY  = BD - 0.375;      // backboard toward top baseline
 
   return (
-    <svg className="absolute inset-0 h-full w-full pointer-events-none"
+    <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-hidden"
       viewBox={viewBox} preserveAspectRatio="none">
       {/* Outer boundary */}
       <rect x={0} y={0} width={W} height={L} {...line} />
 
-      {/* Centre line + half-circle (lower semicircle only) — non-3×3 */}
-      {!HC && <>
+      {/* Centre line + half-circle — only for 3×3 full-court view.
+          For cropped half-court views the centre line is above the viewport. */}
+      {HC && <>
         <line x1={0} y1={L / 2} x2={W} y2={L / 2} {...line} />
-        <path d={`M ${cx - CCR},${L / 2} A ${CCR},${CCR} 0 0,1 ${cx + CCR},${L / 2}`} {...line} />
+        <circle cx={cx} cy={L / 2} r={CCR} {...line} />
         <circle cx={cx} cy={L / 2} r={sw * 0.8} {...dot} />
       </>}
 
@@ -1040,6 +1050,17 @@ export function MatchLive() {
     ? RINK_SPECS["3v3-small"]
     : RINK_SPECS[hockeyFormat];
 
+  const pitchSpec =
+    isHandball   ? getHandballCourtSpec(handballFormatId) :
+    isHockey     ? hockeyDisplaySpec :
+    isBasketball ? getBasketballCourtSpec(basketballFormatId) :
+    (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
+
+  // Basketball: crop parameters map player y-values to the cropped SVG viewport
+  const bbCrop = isBasketball && basketballFormatId !== '3x3'
+    ? getBasketballCrop(pitchSpec as BasketballCourtSpec)
+    : null;
+
   const positions = isHockey
     // y-verdier i RINK_POSITIONS er i [50,100] (eget halvfelt) → konverter til halvbane-% (0–100)
     ? hockeyRinkPositions.map(p => ({ x: p.x, y: (p.y - 50) * 2 }))
@@ -1047,17 +1068,16 @@ export function MatchLive() {
     // all formats: show own defensive half (full-court y 50–100% → view y 0–100%)
     ? getHandballPositions(handballFormatId).map(p => ({ x: p.x, y: toHandballY(p.y) }))
     : isBasketball
-    // 3×3 positions are stored as half-court view %; others need toHandballY (full-court → view)
+    // 3×3 positions are stored as half-court view %; others mapped to the cropped viewport
     ? getBasketballCourtPositions(basketballFormatId).map(p => ({
-        x: p.x, y: basketballFormatId === '3x3' ? p.y : toHandballY(p.y),
+        x: p.x,
+        y: basketballFormatId === '3x3'
+          ? p.y
+          : Math.max(0, Math.min(100,
+              (p.y / 100 * pitchSpec.length - bbCrop!.cropStart) / bbCrop!.viewHeight * 100,
+            )),
       }))
     : getFormationPositions(match.players_on_field, formation).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
-
-  const pitchSpec =
-    isHandball   ? getHandballCourtSpec(handballFormatId) :
-    isHockey     ? hockeyDisplaySpec :
-    isBasketball ? getBasketballCourtSpec(basketballFormatId) :
-    (PITCH_SPECS[match.players_on_field] ?? PITCH_SPECS[11]);
 
   const isEleven = !isHandball && !isHockey && !isBasketball && match.players_on_field === 11;
 
@@ -1443,8 +1463,8 @@ export function MatchLive() {
           <PitchZone anyDragging={!!activeId} spec={pitchSpec}
             halfLength={isHockey || isHandball || (isBasketball && basketballFormatId !== '3x3')}
             fullLength={isBasketball && basketballFormatId === '3x3'}
-            aspectOverride={isBasketball && basketballFormatId !== '3x3'
-              ? `${pitchSpec.width} / ${pitchSpec.length / 2 + 1}`
+            aspectOverride={bbCrop
+              ? `${pitchSpec.width} / ${bbCrop.viewHeight}`
               : undefined}
             bgColor={
               isHandball   ? "bg-[#1565C0]" :
