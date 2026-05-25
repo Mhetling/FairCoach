@@ -17,11 +17,13 @@ const GOAL_STROKE  = RED;
 // Flat edge sits on the goal line; arc extends toward centre ice.
 
 function creaseVertTop(cx: number, GL: number, CR2: number): string {
-  return `M ${cx - CR2},${GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${GL} Z`;
+  // sweep=0 → arc goes downward (toward centre ice) from the goal line
+  return `M ${cx - CR2},${GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${GL} Z`;
 }
 
 function creaseVertBot(cx: number, L: number, GL: number, CR2: number): string {
-  return `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${L - GL} Z`;
+  // sweep=1 → arc goes upward (toward centre ice) from the goal line
+  return `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${L - GL} Z`;
 }
 
 function creaseHorizLeft(GL: number, cy: number, CR2: number): string {
@@ -114,10 +116,10 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
   const topCrease = creaseVertTop(cx, GL, CR2);
   const botCrease = creaseVertBot(cx, L, GL, CR2);
 
-  // Zone faceoff positions — ~20% from each side board, centered between goal line and blue line
+  // Zone faceoff positions — ~20% from each side board, 60% of way from goal line to blue line
   const fxL = W * 0.27, fxR = W * 0.73;
-  const fyTop = BL !== null ? (GL + BL) / 2 : GL * 2.2;
-  const fyBot = BL !== null ? L - (GL + BL) / 2 : L - GL * 2.2;
+  const fyTop = BL !== null ? GL + (BL - GL) * 0.6 : GL * 3;
+  const fyBot = BL !== null ? L - GL - (BL - GL) * 0.6 : L - GL * 3;
   const fcr = FCR ?? CR2;
 
   // Neutral zone faceoff dots: just inside the neutral zone from each blue line
