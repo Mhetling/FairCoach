@@ -83,9 +83,9 @@ function VerticalMarkings({ spec }: { spec: RinkSpec }) {
   const sw    = W / 70;          // strek-tykkelse
   const gd    = Math.min(0.55, GL * 0.8); // mål-dybde i meter
 
-  // Keeper-halvsirkel (D-formet, åpner MOT isen)
-  const topCrease = `M ${cx - CR2},${GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${GL} Z`;
-  const botCrease = `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${L - GL} Z`;
+  // Keeper-halvsirkel (D-formet, åpner MOT isen = buer mot senter)
+  const topCrease = `M ${cx - CR2},${GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${GL} Z`;
+  const botCrease = `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${L - GL} Z`;
 
   // Faceoff-sirkler: to i topp-sone, to i bunn-sone
   const fxL = W * 0.27, fxR = W * 0.73;
@@ -160,9 +160,9 @@ function HorizontalMarkings({ spec }: { spec: RinkSpec }) {
   const gd  = Math.min(0.55, GL * 0.8);
 
   // Keeper-halvsirkel: venstre mål åpner MOT høyre (inn på isen)
-  const leftCrease  = `M ${GL},${cy - CR2} A ${CR2},${CR2} 0 0,1 ${GL},${cy + CR2} Z`;
+  const leftCrease  = `M ${GL},${cy - CR2} A ${CR2},${CR2} 0 0,0 ${GL},${cy + CR2} Z`;
   // Høyre mål åpner MOT venstre
-  const rightCrease = `M ${W - GL},${cy - CR2} A ${CR2},${CR2} 0 0,0 ${W - GL},${cy + CR2} Z`;
+  const rightCrease = `M ${W - GL},${cy - CR2} A ${CR2},${CR2} 0 0,1 ${W - GL},${cy + CR2} Z`;
 
   return (
     <>
@@ -226,17 +226,23 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
   // Bruk 3v3-small-spec for horisontale baner (visuelt samme i kampvisning)
   const spec = rawSpec.orientation === "horizontal" ? RINK_SPECS["3v3-small"] : rawSpec;
   const { width: W, length: L, goalLineDistance: GL, creaseRadius: CR2,
-    blueLineDistance: BL, cornerRadius: CR } = spec;
+    blueLineDistance: BL, cornerRadius: CR,
+    centerCircleRadius: CCR, hasFaceoffCircles } = spec;
 
   const cx    = W / 2;
   const sw    = W / 70;
   const halfY = L / 2;
 
-  // Keeper-halvsirkel for eget mål (åpner MOT isen, oppover)
-  const botCrease = `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,0 ${cx + CR2},${L - GL} Z`;
+  // Keeper-halvsirkel for eget mål (åpner MOT isen = buer mot senter/oppover)
+  const botCrease = `M ${cx - CR2},${L - GL} A ${CR2},${CR2} 0 0,1 ${cx + CR2},${L - GL} Z`;
   // Bane-kontur (full, viewBox klipper til nedre halvdel)
   const boardPath = roundedRect(0, 0, W, L, CR);
   const bw = W / 40;
+
+  // Faceoff-posisjoner i eget halvfelt
+  const fxL = W * 0.27, fxR = W * 0.73;
+  const fyBot = L - GL * 2.4;
+  const fcr   = CR2 * 0.9;
 
   return (
     <svg
@@ -250,11 +256,31 @@ export function HockeyRinkHalfContent({ format }: { format: HockeyFormat }) {
       <path d={boardPath} fill="none" stroke={BOARD_STROKE} strokeWidth={bw} />
       {/* Midtlinje øverst i visningen */}
       <line x1={0} y1={halfY} x2={W} y2={halfY} stroke={RED} strokeWidth={sw * 1.5} />
+      {/* Midtsirkel — sentrert på midtlinjen, nedre halvdel synlig */}
+      {CCR !== null && (
+        <>
+          <circle cx={cx} cy={halfY} r={CCR}
+            fill="none" stroke={BLUE} strokeWidth={sw} />
+          <circle cx={cx} cy={halfY} r={sw * 1.2} fill={RED} />
+        </>
+      )}
       {/* Blålinje i eget halvfelt (kun 5v5-full) */}
       {BL !== null && (
         <line x1={0} y1={L - BL} x2={W} y2={L - BL} stroke={BLUE} strokeWidth={sw * 2} />
       )}
-      {/* Målgård — ingen mål-rektangel */}
+      {/* Faceoff-sirkler og prikker i forsvarssonen */}
+      {hasFaceoffCircles && (
+        <>
+          {[fxL, fxR].map(fx => (
+            <g key={fx}>
+              <circle cx={fx} cy={fyBot} r={fcr}
+                fill="none" stroke={RED} strokeWidth={sw * 0.7} />
+              <circle cx={fx} cy={fyBot} r={sw * 1.2} fill={RED} />
+            </g>
+          ))}
+        </>
+      )}
+      {/* Målgård — åpner mot senter */}
       <path d={botCrease} fill={CREASE_FILL} stroke={CREASE_STROKE} strokeWidth={sw * 0.8} />
     </svg>
   );
