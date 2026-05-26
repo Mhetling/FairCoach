@@ -745,14 +745,6 @@ function LineChangeDialog({ lines, players, activeLineId, onConfirm, onClose }: 
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  function chipLabel(id: string) {
-    const mp = players.find(p => p.player_id === id);
-    if (!mp) return id;
-    const num = mp.player.jersey_number;
-    const first = mp.player.name.split(" ")[0];
-    return num != null ? `#${num} ${first}` : first;
-  }
-
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">

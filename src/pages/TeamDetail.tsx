@@ -53,14 +53,18 @@ function PlayerDialog({
   const [position, setPosition] = useState<string | null>(player?.position ?? null);
   const [dominantSide, setDominantSide] = useState<"R" | "L" | null>(player?.dominant_side ?? null);
 
+  function resetTo(p: Player | null) {
+    setName(p?.name ?? "");
+    setJersey(p?.jersey_number?.toString() ?? "");
+    setPosition(p?.position ?? null);
+    setDominantSide(p?.dominant_side ?? null);
+  }
+
   // Sync form fields whenever the target player changes (guards against stale
   // state if React reuses the component instance instead of remounting).
   const playerId = player?.id;
   useEffect(() => {
-    setName(player?.name ?? "");
-    setJersey(player?.jersey_number?.toString() ?? "");
-    setPosition(player?.position ?? null);
-    setDominantSide(player?.dominant_side ?? null);
+    resetTo(player);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]);
 
