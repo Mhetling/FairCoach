@@ -174,8 +174,8 @@ function computeZoneForSlot(
       }
     }
   }
-  // Soccer — posIdx 0 is always GK
-  if (posIdx === 0) return "keeper";
+  // Soccer — posIdx 0 is always GK (3v3 has no keeper)
+  if (posIdx === 0 && playersOnField > 3) return "keeper";
   const rawPositions = getFormationPositions(playersOnField, formation);
   const pos = rawPositions[posIdx];
   const y = pos?.y ?? 65;
@@ -1229,6 +1229,7 @@ export function MatchLive() {
     ? resolveHandballFormatId(match.formation, match.players_on_field)
     : '7er';
   const is4er = isHandball && handballFormatId === '4er';
+  const is3erFootball = !isHandball && !isHockey && !isBasketball && match.players_on_field === 3;
 
   const basketballFormatId = isBasketball
     ? resolveBasketballFormatId(match.formation, match.players_on_field)
@@ -1326,7 +1327,7 @@ export function MatchLive() {
       const fmtId = resolveHandballFormatId(match.formation, match.players_on_field);
       return getHandballCourtPositions(fmtId)[posIdx]?.isGoalkeeper === true;
     }
-    return posIdx === 0;
+    return !is3erFootball && posIdx === 0;
   }
 
   // ── Zone tracking ──────────────────────────────────────────────────────────
@@ -1794,7 +1795,7 @@ export function MatchLive() {
              isBasketball ? <BasketballCourtMarkings spec={getBasketballCourtSpec(basketballFormatId)} /> :
              <PitchMarkings spec={pitchSpec as PitchSpec} />
             }
-            {is4er && (
+            {(is4er || is3erFootball) && (
               <div className="absolute top-[6%] left-1/2 -translate-x-1/2 pointer-events-none z-10 bg-black/30 backdrop-blur-sm text-white/80 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
                 Ingen fast keeper
               </div>
