@@ -1097,16 +1097,31 @@ export function MatchLive() {
     setScoreAway(match.score_away ?? 0);
     setFormation(match.formation);
 
+    let loadedLines: HockeyLine[] | null = null;
     if (match.sport_id === "hockey" && matchId) {
-      const saved = loadHockeyLines(matchId);
-      if (saved) setHockeyLines(saved);
+      loadedLines = loadHockeyLines(matchId);
+      if (loadedLines) setHockeyLines(loadedLines);
     }
+
+    const hFmt = resolveHockeyFormat(match.formation, match.players_on_field);
+    const rinkPositions = RINK_POSITIONS[hFmt];
+    const gkPosIdx = rinkPositions.findIndex(p => p.isGoalie);
 
     const initCameOn: Record<string, number> = {};
     const initPos: Record<string, number> = {};
     players.filter((p) => p.on_field).forEach((p, i) => {
       initCameOn[p.player_id] = match.elapsed_seconds;
-      initPos[p.player_id] = i;
+      if (loadedLines && loadedLines.length > 0) {
+        const slot = loadedLines[0].slots.find(s => s.playerId === p.player_id);
+        if (slot) {
+          const posIdx = rinkPositions.findIndex(pos => pos.id === slot.positionId);
+          initPos[p.player_id] = posIdx !== -1 ? posIdx : gkPosIdx;
+        } else {
+          initPos[p.player_id] = gkPosIdx !== -1 ? gkPosIdx : i;
+        }
+      } else {
+        initPos[p.player_id] = i;
+      }
     });
     cameOnAt.current = initCameOn;
     positionMap.current = initPos;
@@ -1122,10 +1137,10 @@ export function MatchLive() {
     zoneAccumRef.current = initZoneAccum;
 
     // Start zone tracking for field players
-    const hFmt = resolveHockeyFormat(match.formation, match.players_on_field);
     const initZoneStart: Record<string, { zone: string; startElapsed: number }> = {};
-    players.filter((p) => p.on_field).forEach((p, i) => {
-      const zone = computeZoneForSlot(i, match.sport_id, hFmt, match.players_on_field, match.formation);
+    players.filter((p) => p.on_field).forEach((p) => {
+      const posIdx = initPos[p.player_id] ?? 0;
+      const zone = computeZoneForSlot(posIdx, match.sport_id, hFmt, match.players_on_field, match.formation);
       initZoneStart[p.player_id] = { zone, startElapsed: match.elapsed_seconds };
     });
     zoneStartRef.current = initZoneStart;
