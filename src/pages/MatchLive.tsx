@@ -1831,7 +1831,7 @@ export function MatchLive() {
                   : "Kan settes inn når laget ligger under med 4+ mål"}
               </p>
             </div>
-            <Button size="sm" variant={match.track_goals ? "default" : "ghost"} onClick={() => setExtraPlayerDialog("add")}>Sett inn</Button>
+            <Button size="sm" variant={match.track_goals ? "accent" : "ghost"} onClick={() => setExtraPlayerDialog("add")}>Sett inn</Button>
           </div>
         )}
         {mustRemoveExtraPlayer && (
