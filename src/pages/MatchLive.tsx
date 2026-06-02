@@ -57,6 +57,7 @@ import {
 import { type HockeyLine, loadHockeyLines, saveHockeyLines, autoSplitLines, linePlayerIds } from "@/lib/hockeyLines";
 import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
 import { HockeyRinkHalfContent } from "@/components/HockeyRink";
+import { FormationMiniPitch } from "@/components/FormationMiniPitch";
 import { SPORT_CONFIGS } from "@/lib/sportConfig";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -1057,21 +1058,27 @@ function FormationDialog({ open, current, onSelect, onClose }: {
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Bytt formasjon</DialogTitle>
+          <DialogTitle>Velg formasjon</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-3 gap-2 pt-2">
-          {ELEVEN_FORMATIONS.map((f) => (
-            <button key={f.name} type="button"
-              onClick={() => { onSelect(f.name); onClose(); }}
-              className={cn(
-                "h-12 rounded-lg border text-sm font-semibold transition-colors",
-                current === f.name
-                  ? "border-ink bg-ink text-cream"
-                  : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
-              )}>
-              {f.name}
-            </button>
-          ))}
+        <div className="grid grid-cols-4 gap-2 pt-2">
+          {ELEVEN_FORMATIONS.map((f) => {
+            const isSelected = current === f.name;
+            return (
+              <button key={f.name} type="button"
+                onClick={() => { onSelect(f.name); onClose(); }}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors",
+                  isSelected
+                    ? "border-ink bg-ink"
+                    : "border-ink/20 bg-cream-dark hover:bg-ink/5",
+                )}>
+                <FormationMiniPitch formation={f} selected={isSelected} />
+                <span className={cn("text-xs font-bold", isSelected ? "text-cream" : "text-ink")}>
+                  {f.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>

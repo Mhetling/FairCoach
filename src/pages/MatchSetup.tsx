@@ -18,6 +18,7 @@ import {
 } from "@/lib/hockeyRinks";
 import { type HockeyLine, saveHockeyLines, autoSplitLines } from "@/lib/hockeyLines";
 import { HockeyLineSetupDialog, type LineSetupPlayer } from "@/components/HockeyLineSetupDialog";
+import { FormationMiniPitch } from "@/components/FormationMiniPitch";
 import {
   HANDBALL_FORMATS, HANDBALL_FORMAT_ORDER, HANDBALL_RULES_OVERVIEW,
   type HandballFormatId,
@@ -730,16 +731,28 @@ export function MatchSetup() {
             {isSoccer11 && (
               <div className="space-y-2">
                 <Label>Formasjon</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {ELEVEN_FORMATIONS.map((f) => (
-                    <OptionButton
-                      key={f.name}
-                      active={formation === f.name}
-                      onClick={() => setFormation(f.name)}
-                    >
-                      {f.name}
-                    </OptionButton>
-                  ))}
+                <div className="grid grid-cols-4 gap-2">
+                  {ELEVEN_FORMATIONS.map((f) => {
+                    const isSelected = formation === f.name;
+                    return (
+                      <button
+                        key={f.name}
+                        type="button"
+                        onClick={() => setFormation(f.name)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors",
+                          isSelected
+                            ? "border-ink bg-ink"
+                            : "border-ink/20 bg-cream-dark hover:bg-ink/5",
+                        )}
+                      >
+                        <FormationMiniPitch formation={f} selected={isSelected} />
+                        <span className={cn("text-xs font-bold", isSelected ? "text-cream" : "text-ink")}>
+                          {f.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
