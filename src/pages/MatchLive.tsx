@@ -1646,6 +1646,19 @@ export function MatchLive() {
   async function handleRemoveExtraPlayer(playerId: string) {
     const mp = players.find((p) => p.player_id === playerId);
     const totalSecs = mp ? getPlayTime(mp) : 0;
+
+    const removedSlot = positionMap.current[playerId];
+    const isExtraSlot = removedSlot >= match.players_on_field;
+
+    if (!isExtraSlot) {
+      // Removed a normal-slot player — move the extra-slot player into the freed slot
+      const extraPlayerId = Object.entries(positionMap.current)
+        .find(([, slot]) => slot >= match.players_on_field)?.[0];
+      if (extraPlayerId) {
+        positionMap.current[extraPlayerId] = removedSlot;
+      }
+    }
+
     delete cameOnAt.current[playerId];
     delete positionMap.current[playerId];
     setExtraPlayerDialog(null);
