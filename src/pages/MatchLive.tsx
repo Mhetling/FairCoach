@@ -1356,11 +1356,14 @@ export function MatchLive() {
   const isEleven = !isHandball && !isHockey && !isBasketball && match.players_on_field === 11;
 
   // NFF barnefotball rule: losing team may add one extra player when 4+ goals behind
-  const isBarnefotball = match.sport_id === "soccer" && [3, 5, 7].includes(match.players_on_field) && match.track_goals;
+  const isBarnefotball = match.sport_id === "soccer" && [3, 5, 7].includes(match.players_on_field);
   const goalDiff = scoreAway - scoreHome;
   const hasExtraPlayer = fieldPlayers.length > match.players_on_field;
-  const canAddExtraPlayer = isBarnefotball && goalDiff >= 4 && !hasExtraPlayer && benchPlayers.length > 0 && match.status !== "finished";
-  const mustRemoveExtraPlayer = isBarnefotball && goalDiff < 4 && hasExtraPlayer && match.status !== "finished";
+  // When track_goals: auto-detect from score. When not tracking: coach decides manually.
+  const canAddExtraPlayer = isBarnefotball && !hasExtraPlayer && benchPlayers.length > 0 && match.status !== "finished"
+    && (!match.track_goals || goalDiff >= 4);
+  const mustRemoveExtraPlayer = isBarnefotball && hasExtraPlayer && match.status !== "finished"
+    && (!match.track_goals || goalDiff < 4);
 
   function getPlayTime(mp: RichMatchPlayer) {
     if (mp.on_field) {
@@ -1812,19 +1815,41 @@ export function MatchLive() {
 
         {/* Extra player rule banner (NFF barnefotball) */}
         {canAddExtraPlayer && (
-          <div className="mb-3 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 px-4 py-3">
+          <div className={cn(
+            "mb-3 flex items-center justify-between rounded-xl border px-4 py-3",
+            match.track_goals
+              ? "border-green-300 bg-green-50"
+              : "border-ink/10 bg-cream-dark",
+          )}>
             <div>
-              <p className="text-sm font-semibold text-green-900">Ekstra spiller tillatt</p>
-              <p className="text-xs text-green-800 mt-0.5">Dere ligger under med 4+ mål (NFF barnefotball-regel)</p>
+              <p className={cn("text-sm font-semibold", match.track_goals ? "text-green-900" : "text-ink")}>
+                Ekstra spiller (barnefotball)
+              </p>
+              <p className={cn("text-xs mt-0.5", match.track_goals ? "text-green-800" : "text-ink-muted")}>
+                {match.track_goals
+                  ? "Dere ligger under med 4+ mål (NFF-regel)"
+                  : "Kan settes inn når laget ligger under med 4+ mål"}
+              </p>
             </div>
-            <Button size="sm" onClick={() => setExtraPlayerDialog("add")}>Sett inn</Button>
+            <Button size="sm" variant={match.track_goals ? "default" : "ghost"} onClick={() => setExtraPlayerDialog("add")}>Sett inn</Button>
           </div>
         )}
         {mustRemoveExtraPlayer && (
-          <div className="mb-3 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <div className={cn(
+            "mb-3 flex items-center justify-between rounded-xl border px-4 py-3",
+            match.track_goals
+              ? "border-amber-300 bg-amber-50"
+              : "border-ink/10 bg-cream-dark",
+          )}>
             <div>
-              <p className="text-sm font-semibold text-amber-900">Fjern ekstra spiller</p>
-              <p className="text-xs text-amber-800 mt-0.5">Målforskjellen er under 4 — gå tilbake til normalt antall</p>
+              <p className={cn("text-sm font-semibold", match.track_goals ? "text-amber-900" : "text-ink")}>
+                Fjern ekstra spiller
+              </p>
+              <p className={cn("text-xs mt-0.5", match.track_goals ? "text-amber-800" : "text-ink-muted")}>
+                {match.track_goals
+                  ? "Målforskjellen er under 4 — gå tilbake til normalt antall"
+                  : "Ekstra spiller er på banen — fjern ved behov"}
+              </p>
             </div>
             <Button size="sm" variant="ghost" onClick={() => setExtraPlayerDialog("remove")}>Fjern</Button>
           </div>
