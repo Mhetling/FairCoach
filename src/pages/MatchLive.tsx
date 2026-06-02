@@ -35,6 +35,8 @@ import {
   useUpdateMatch,
   useUpdatePlayerMeta,
   useUpdatePlayerPlayTime,
+  useAddExtraPlayer,
+  useRemoveExtraPlayer,
   type RichMatchEvent,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
@@ -975,6 +977,77 @@ function GoalDialog({ open, team, opponent, teamName, players, isHockey, onConfi
   );
 }
 
+// ─── Extra player picker dialog (barnefotball rule) ───────────────────────────
+
+function ExtraPlayerPickerDialog({ open, mode, players, onConfirm, onCancel }: {
+  open: boolean;
+  mode: "add" | "remove";
+  players: RichMatchPlayer[];
+  onConfirm: (playerId: string) => void;
+  onCancel: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) setSelectedId(null);
+  }, [open]);
+
+  const pool = mode === "add"
+    ? players.filter((p) => !p.on_field)
+    : players.filter((p) => p.on_field);
+
+  function label(mp: RichMatchPlayer) {
+    return mp.player.jersey_number != null
+      ? `#${mp.player.jersey_number} ${mp.player.name.split(" ")[0]}`
+      : mp.player.name.split(" ")[0];
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "add" ? "Sett inn ekstra spiller" : "Fjern ekstra spiller"}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-ink-muted">
+          {mode === "add"
+            ? "Velg en spiller fra benken som skal inn som ekstra spiller."
+            : "Velg hvilken spiller som skal av banen (tilbake til normalt antall)."}
+        </p>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {pool.map((mp) => (
+            <button
+              key={mp.player_id}
+              type="button"
+              onClick={() => setSelectedId(mp.player_id)}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                selectedId === mp.player_id
+                  ? "border-ink bg-ink text-cream"
+                  : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
+              )}
+            >
+              {label(mp)}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 flex gap-3">
+          <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
+          <Button
+            variant="accent"
+            className="flex-1"
+            disabled={!selectedId}
+            onClick={() => selectedId && onConfirm(selectedId)}
+          >
+            {mode === "add" ? "Sett inn" : "Ta av"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Formation dialog ─────────────────────────────────────────────────────────
 
 function FormationDialog({ open, current, onSelect, onClose }: {
@@ -1021,6 +1094,8 @@ export function MatchLive() {
   const updatePlayerPlayTime = useUpdatePlayerPlayTime(matchId);
   const updatePlayerMeta = useUpdatePlayerMeta(matchId);
   const updateAllPlayerMetas = useUpdateAllPlayerMetas(matchId);
+  const addExtraPlayer = useAddExtraPlayer(matchId);
+  const removeExtraPlayer = useRemoveExtraPlayer(matchId);
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -1030,6 +1105,7 @@ export function MatchLive() {
   const [scoreAway, setScoreAway] = useState(0);
   const [formation, setFormation] = useState<string | null>(null);
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
+  const [extraPlayerDialog, setExtraPlayerDialog] = useState<"add" | "remove" | null>(null);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [clockAdjustOpen, setClockAdjustOpen] = useState(false);
@@ -1278,6 +1354,13 @@ export function MatchLive() {
     : getFormationPositions(match.players_on_field, formation).map(p => ({ x: p.x, y: toCroppedY(p.y) }));
 
   const isEleven = !isHandball && !isHockey && !isBasketball && match.players_on_field === 11;
+
+  // NFF barnefotball rule: losing team may add one extra player when 4+ goals behind
+  const isBarnefotball = match.sport_id === "soccer" && [3, 5, 7].includes(match.players_on_field) && match.track_goals;
+  const goalDiff = scoreAway - scoreHome;
+  const hasExtraPlayer = fieldPlayers.length > match.players_on_field;
+  const canAddExtraPlayer = isBarnefotball && goalDiff >= 4 && !hasExtraPlayer && benchPlayers.length > 0 && match.status !== "finished";
+  const mustRemoveExtraPlayer = isBarnefotball && goalDiff < 4 && hasExtraPlayer && match.status !== "finished";
 
   function getPlayTime(mp: RichMatchPlayer) {
     if (mp.on_field) {
@@ -1549,6 +1632,23 @@ export function MatchLive() {
     ]);
   }
 
+  async function handleAddExtraPlayer(playerId: string) {
+    cameOnAt.current[playerId] = elapsed;
+    // Place extra player at center field (falls back to { x:50, y:50 } in pitch renderer)
+    positionMap.current[playerId] = match.players_on_field;
+    setExtraPlayerDialog(null);
+    await addExtraPlayer.mutateAsync({ playerId, atSeconds: elapsed });
+  }
+
+  async function handleRemoveExtraPlayer(playerId: string) {
+    const mp = players.find((p) => p.player_id === playerId);
+    const totalSecs = mp ? getPlayTime(mp) : 0;
+    delete cameOnAt.current[playerId];
+    delete positionMap.current[playerId];
+    setExtraPlayerDialog(null);
+    await removeExtraPlayer.mutateAsync({ playerId, totalPlaySeconds: totalSecs, atSeconds: elapsed });
+  }
+
   function handleFormationChange(newFormation: string) {
     setFormation(newFormation);
     updateMatch.mutate({ formation: newFormation });
@@ -1709,6 +1809,26 @@ export function MatchLive() {
             )}
           </div>
         </div>}
+
+        {/* Extra player rule banner (NFF barnefotball) */}
+        {canAddExtraPlayer && (
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-green-900">Ekstra spiller tillatt</p>
+              <p className="text-xs text-green-800 mt-0.5">Dere ligger under med 4+ mål (NFF barnefotball-regel)</p>
+            </div>
+            <Button size="sm" onClick={() => setExtraPlayerDialog("add")}>Sett inn</Button>
+          </div>
+        )}
+        {mustRemoveExtraPlayer && (
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Fjern ekstra spiller</p>
+              <p className="text-xs text-amber-800 mt-0.5">Målforskjellen er under 4 — gå tilbake til normalt antall</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setExtraPlayerDialog("remove")}>Fjern</Button>
+          </div>
+        )}
 
         {/* Hockey line bar */}
         {isHockey && match.status !== "finished" && (() => {
@@ -1911,6 +2031,17 @@ export function MatchLive() {
             isHockey={isHockey}
             onConfirm={confirmGoal}
             onCancel={() => setGoalDialog(null)}
+          />
+        )}
+
+        {/* Extra player picker dialog */}
+        {isBarnefotball && (
+          <ExtraPlayerPickerDialog
+            open={extraPlayerDialog !== null}
+            mode={extraPlayerDialog ?? "add"}
+            players={players}
+            onConfirm={extraPlayerDialog === "add" ? handleAddExtraPlayer : handleRemoveExtraPlayer}
+            onCancel={() => setExtraPlayerDialog(null)}
           />
         )}
 

@@ -185,6 +185,50 @@ export function useLogGoal(matchId: string | undefined) {
   });
 }
 
+export function useAddExtraPlayer(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { playerId: string; atSeconds: number }) => {
+      if (!matchId) return;
+      const { error } = await supabase
+        .from("match_players")
+        .update({ on_field: true })
+        .eq("match_id", matchId)
+        .eq("player_id", args.playerId);
+      if (error) throw error;
+      await supabase.from("match_events").insert({
+        match_id: matchId,
+        player_id: args.playerId,
+        event_type: "on",
+        at_seconds: args.atSeconds,
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
+export function useRemoveExtraPlayer(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { playerId: string; totalPlaySeconds: number; atSeconds: number }) => {
+      if (!matchId) return;
+      const { error } = await supabase
+        .from("match_players")
+        .update({ on_field: false, total_play_seconds: args.totalPlaySeconds })
+        .eq("match_id", matchId)
+        .eq("player_id", args.playerId);
+      if (error) throw error;
+      await supabase.from("match_events").insert({
+        match_id: matchId,
+        player_id: args.playerId,
+        event_type: "off",
+        at_seconds: args.atSeconds,
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
 export function useUpdatePlayerPlayTime(matchId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
