@@ -185,6 +185,23 @@ export function useLogGoal(matchId: string | undefined) {
   });
 }
 
+export function useAddPlayerToMatch(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { playerId: string }) => {
+      if (!matchId) return;
+      const { error } = await supabase.from("match_players").insert({
+        match_id: matchId,
+        player_id: args.playerId,
+        selected: true,
+        on_field: false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match", matchId] }),
+  });
+}
+
 export function useAddExtraPlayer(matchId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

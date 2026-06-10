@@ -37,11 +37,13 @@ import {
   useUpdatePlayerPlayTime,
   useAddExtraPlayer,
   useRemoveExtraPlayer,
+  useAddPlayerToMatch,
   type RichMatchEvent,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
-import type { ZoneTime } from "@/types/database";
+import type { Player, ZoneTime } from "@/types/database";
 import { useTeam } from "@/hooks/useTeams";
+import { usePlayers, useCreatePlayer } from "@/hooks/usePlayers";
 import {
   PITCH_SPECS, getHandballCourtSpec, getBasketballCourtSpec,
   type PitchSpec, type BasketballCourtSpec,
@@ -1085,6 +1087,151 @@ function FormationDialog({ open, current, onSelect, onClose }: {
   );
 }
 
+// ─── Add squad player dialog ──────────────────────────────────────────────────
+
+function AddSquadPlayerDialog({ open, squadPlayers, matchPlayerIds, onAddSquadPlayer, onAddAnonymous, onCancel }: {
+  open: boolean;
+  squadPlayers: Player[];
+  matchPlayerIds: Set<string>;
+  onAddSquadPlayer: (playerId: string) => void;
+  onAddAnonymous: (name: string, jerseyNumber: number | null) => void;
+  onCancel: () => void;
+}) {
+  const [tab, setTab] = useState<"squad" | "anon">("squad");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [anonName, setAnonName] = useState("");
+  const [anonJersey, setAnonJersey] = useState("");
+
+  const available = squadPlayers.filter((p) => !matchPlayerIds.has(p.id));
+
+  useEffect(() => {
+    if (open) {
+      setTab("squad");
+      setSelectedId(null);
+      setAnonName("");
+      setAnonJersey("");
+    }
+  }, [open]);
+
+  function playerLabel(p: Player) {
+    return p.jersey_number != null ? `#${p.jersey_number} ${p.name}` : p.name;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Legg til spiller</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex gap-2 mt-1">
+          <button
+            type="button"
+            onClick={() => setTab("squad")}
+            className={cn(
+              "flex-1 rounded-lg border py-2 text-sm font-medium transition-colors",
+              tab === "squad" ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink",
+            )}
+          >
+            Fra troppen
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("anon")}
+            className={cn(
+              "flex-1 rounded-lg border py-2 text-sm font-medium transition-colors",
+              tab === "anon" ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink",
+            )}
+          >
+            Anonym (X)
+          </button>
+        </div>
+
+        {tab === "squad" && (
+          <>
+            {available.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-muted">Alle spillere i troppen er allerede i kampen.</p>
+            ) : (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {available.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedId(p.id)}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      selectedId === p.id
+                        ? "border-ink bg-ink text-cream"
+                        : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
+                    )}
+                  >
+                    {playerLabel(p)}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex gap-3">
+              <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
+              <Button
+                variant="accent"
+                className="flex-1"
+                disabled={!selectedId}
+                onClick={() => selectedId && onAddSquadPlayer(selectedId)}
+              >
+                Legg til benk
+              </Button>
+            </div>
+          </>
+        )}
+
+        {tab === "anon" && (
+          <>
+            <p className="mt-3 text-sm text-ink-muted">
+              Legg til en spiller som ikke er i troppen (opprettes som ny spiller i laget).
+            </p>
+            <div className="mt-3 flex flex-col gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase tracking-wide">Navn</label>
+                <input
+                  type="text"
+                  placeholder="Fornavn"
+                  value={anonName}
+                  onChange={(e) => setAnonName(e.target.value)}
+                  className="w-full rounded-lg border border-ink/20 bg-cream-dark px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-ink/30"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-ink-muted uppercase tracking-wide">Drakt nr. (valgfritt)</label>
+                <input
+                  type="number"
+                  placeholder="–"
+                  value={anonJersey}
+                  onChange={(e) => setAnonJersey(e.target.value)}
+                  className="w-full rounded-lg border border-ink/20 bg-cream-dark px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-ink/30"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
+              <Button
+                variant="accent"
+                className="flex-1"
+                disabled={!anonName.trim()}
+                onClick={() => {
+                  const jersey = anonJersey ? parseInt(anonJersey, 10) : null;
+                  onAddAnonymous(anonName.trim(), isNaN(jersey as number) ? null : jersey);
+                }}
+              >
+                Legg til benk
+              </Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function MatchLive() {
@@ -1103,6 +1250,9 @@ export function MatchLive() {
   const updateAllPlayerMetas = useUpdateAllPlayerMetas(matchId);
   const addExtraPlayer = useAddExtraPlayer(matchId);
   const removeExtraPlayer = useRemoveExtraPlayer(matchId);
+  const addPlayerToMatch = useAddPlayerToMatch(matchId);
+  const createPlayer = useCreatePlayer();
+  const { data: squadPlayers = [] } = usePlayers(data?.match.team_id);
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -1113,6 +1263,7 @@ export function MatchLive() {
   const [formation, setFormation] = useState<string | null>(null);
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
   const [extraPlayerDialog, setExtraPlayerDialog] = useState<"add" | "remove" | null>(null);
+  const [addSquadPlayerOpen, setAddSquadPlayerOpen] = useState(false);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [clockAdjustOpen, setClockAdjustOpen] = useState(false);
@@ -1650,6 +1801,23 @@ export function MatchLive() {
     await addExtraPlayer.mutateAsync({ playerId, atSeconds: elapsed });
   }
 
+  async function handleAddSquadPlayer(playerId: string) {
+    setAddSquadPlayerOpen(false);
+    await addPlayerToMatch.mutateAsync({ playerId });
+  }
+
+  async function handleAddAnonymousPlayer(name: string, jerseyNumber: number | null) {
+    if (!data) return;
+    setAddSquadPlayerOpen(false);
+    const newPlayer = await createPlayer.mutateAsync({
+      team_id: data.match.team_id,
+      name,
+      jersey_number: jerseyNumber,
+      position: null,
+    });
+    await addPlayerToMatch.mutateAsync({ playerId: newPlayer.id });
+  }
+
   async function handleRemoveExtraPlayer(playerId: string) {
     const mp = players.find((p) => p.player_id === playerId);
     const totalSecs = mp ? getPlayTime(mp) : 0;
@@ -2046,6 +2214,20 @@ export function MatchLive() {
           </div>
         )}
 
+        {/* Add player from squad */}
+        {match.status !== "finished" && (
+          <div className="mt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-ink-muted"
+              onClick={() => setAddSquadPlayerOpen(true)}
+            >
+              + Legg til spiller
+            </Button>
+          </div>
+        )}
+
         {/* Drag overlay */}
         <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
           {activePlayer && (() => {
@@ -2096,6 +2278,16 @@ export function MatchLive() {
           current={formation ?? "4-4-2"}
           onSelect={handleFormationChange}
           onClose={() => setFormationDialogOpen(false)}
+        />
+
+        {/* Add squad player dialog */}
+        <AddSquadPlayerDialog
+          open={addSquadPlayerOpen}
+          squadPlayers={squadPlayers}
+          matchPlayerIds={new Set(players.map((p) => p.player_id))}
+          onAddSquadPlayer={handleAddSquadPlayer}
+          onAddAnonymous={handleAddAnonymousPlayer}
+          onCancel={() => setAddSquadPlayerOpen(false)}
         />
 
         {/* Player detail / play-time edit dialog */}
