@@ -453,6 +453,11 @@ function FieldToken({ mp, pos, playSeconds, fpColor, isPendingSwap, positionLabe
             {subOutRank}
           </span>
         )}
+        {mp.meta?.note && (
+          <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-amber-900 shadow">
+            !
+          </span>
+        )}
       </div>
       <span className={cn(
         "text-[10px] font-mono mt-0.5 pointer-events-none",
@@ -508,6 +513,11 @@ function BenchItem({ mp, playSeconds, fpColor, priority, onLongPressStart, onLon
         {priority !== undefined && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-cream shadow">
             {priority}
+          </span>
+        )}
+        {mp.meta?.note && (
+          <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-amber-900 shadow">
+            !
           </span>
         )}
       </div>
