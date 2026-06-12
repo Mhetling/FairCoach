@@ -218,37 +218,28 @@ function FairnessTrendChart({ players }: { players: PlayerSeasonStat[] }) {
 
 // ─── Goalie rotation ──────────────────────────────────────────────────────────
 
-function GoalieRotation({ players, matchCount }: { players: PlayerSeasonStat[]; matchCount: number }) {
-  if (matchCount === 0) return null;
-
-  const threshold = Math.max(1, Math.floor(matchCount / Math.max(1, players.length)));
+function GoalieRotation({ players }: { players: PlayerSeasonStat[] }) {
+  const goalies = players.filter((p) => p.keeperMatchCount > 0);
+  if (goalies.length === 0) return null;
 
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
         <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">Keeperrotasjon</p>
-        <p className="text-xs text-ink-muted">Basert på sonestid registrert i kampene.</p>
         <div className="flex flex-col gap-1.5">
-          {players.map((p) => {
-            const overdue = p.keeperMatchCount === 0 || (matchCount - players.indexOf(p)) > threshold * 2;
-            return (
-              <div key={p.playerId} className="flex items-center gap-3">
-                <span className="flex-1 text-sm font-medium text-ink truncate">
-                  {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ""}{p.name.split(" ")[0]}
-                </span>
-                <span className="text-sm tabular-nums text-ink-muted">{p.keeperMatchCount} vakter</span>
-                {p.lastKeeperMatchDate && (
-                  <span className="text-xs text-ink-muted">{fmtDate(p.lastKeeperMatchDate)}</span>
-                )}
-                <span className={cn(
-                  "rounded-full px-2 py-0.5 text-xs font-semibold",
-                  overdue ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800",
-                )}>
-                  {overdue ? "Forfalt" : "OK"}
-                </span>
-              </div>
-            );
-          })}
+          {goalies.map((p) => (
+            <div key={p.playerId} className="flex items-center gap-3">
+              <span className="flex-1 text-sm font-medium text-ink truncate">
+                {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ""}{p.name.split(" ")[0]}
+              </span>
+              <span className="text-sm tabular-nums text-ink-muted">
+                {p.keeperMatchCount} {p.keeperMatchCount === 1 ? "kamp" : "kamper"}
+              </span>
+              {p.lastKeeperMatchDate && (
+                <span className="text-xs text-ink-muted">Sist: {fmtDate(p.lastKeeperMatchDate)}</span>
+              )}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -283,7 +274,7 @@ export function SeasonStats() {
             <TeamRecordCard {...stats.teamRecord} />
             <PlayerStatsTable players={stats.playerStats} />
             <FairnessTrendChart players={stats.playerStats} />
-            <GoalieRotation players={stats.playerStats} matchCount={stats.matchCount} />
+            <GoalieRotation players={stats.playerStats} />
           </div>
         )}
       </ProGate>
