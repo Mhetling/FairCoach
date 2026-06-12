@@ -38,6 +38,7 @@ import {
   useAddExtraPlayer,
   useRemoveExtraPlayer,
   useAddPlayerToMatch,
+  useLogSave,
   type RichMatchEvent,
   type RichMatchPlayer,
 } from "@/hooks/useMatch";
@@ -990,6 +991,99 @@ function GoalDialog({ open, team, opponent, teamName, players, isHockey, onConfi
   );
 }
 
+// ─── Save dialog ─────────────────────────────────────────────────────────────
+
+function SaveDialog({ open, players, onConfirm, onCancel }: {
+  open: boolean;
+  players: RichMatchPlayer[];
+  onConfirm: (keeperId: string | null, defenderId: string | null) => void;
+  onCancel: () => void;
+}) {
+  const [keeperId, setKeeperId] = useState<string | null>(null);
+  const [defenderId, setDefenderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) { setKeeperId(null); setDefenderId(null); }
+  }, [open]);
+
+  const onField = [...players]
+    .filter((p) => p.on_field)
+    .sort((a, b) => (a.player.jersey_number ?? 999) - (b.player.jersey_number ?? 999));
+
+  function chipLabel(mp: RichMatchPlayer) {
+    return mp.player.jersey_number != null
+      ? `#${mp.player.jersey_number} ${mp.player.name.split(" ")[0]}`
+      : mp.player.name.split(" ")[0];
+  }
+
+  function Chip({ mp, selected, dim, onSelect }: {
+    mp: RichMatchPlayer; selected: boolean; dim?: boolean; onSelect: () => void;
+  }) {
+    return (
+      <button type="button" onClick={onSelect}
+        className={cn(
+          "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+          selected ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink hover:bg-ink/5",
+          dim && !selected && "opacity-40",
+        )}>
+        {chipLabel(mp)}
+      </button>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Registrer redning</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">Keeper</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setKeeperId(null)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                  keeperId === null ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink-muted hover:bg-ink/5",
+                )}>
+                Ukjent
+              </button>
+              {onField.map((mp) => (
+                <Chip key={mp.player_id} mp={mp}
+                  selected={keeperId === mp.player_id}
+                  onSelect={() => { setKeeperId(mp.player_id); if (defenderId === mp.player_id) setDefenderId(null); }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">God forsvarsjobb (valgfritt)</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setDefenderId(null)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                  defenderId === null ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink-muted hover:bg-ink/5",
+                )}>
+                Ingen
+              </button>
+              {onField.filter((p) => p.player_id !== keeperId).map((mp) => (
+                <Chip key={mp.player_id} mp={mp}
+                  selected={defenderId === mp.player_id}
+                  onSelect={() => setDefenderId(mp.player_id)} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
+          <Button variant="accent" className="flex-1" onClick={() => onConfirm(keeperId, defenderId)}>
+            Registrer
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Extra player picker dialog (barnefotball rule) ───────────────────────────
 
 function ExtraPlayerPickerDialog({ open, mode, players, onConfirm, onCancel }: {
@@ -1260,6 +1354,7 @@ export function MatchLive() {
   const updateAllPlayerMetas = useUpdateAllPlayerMetas(matchId);
   const addExtraPlayer = useAddExtraPlayer(matchId);
   const removeExtraPlayer = useRemoveExtraPlayer(matchId);
+  const logSave = useLogSave(matchId);
   const addPlayerToMatch = useAddPlayerToMatch(matchId);
   const createPlayer = useCreatePlayer();
   const { data: squadPlayers = [] } = usePlayers(data?.match.team_id);
@@ -1274,6 +1369,7 @@ export function MatchLive() {
   const [goalDialog, setGoalDialog] = useState<{ team: "home" | "away" } | null>(null);
   const [extraPlayerDialog, setExtraPlayerDialog] = useState<"add" | "remove" | null>(null);
   const [addSquadPlayerOpen, setAddSquadPlayerOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [formationDialogOpen, setFormationDialogOpen] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [clockAdjustOpen, setClockAdjustOpen] = useState(false);
@@ -1525,6 +1621,7 @@ export function MatchLive() {
 
   // NFF barnefotball rule: losing team may add one extra player when 4+ goals behind
   const isBarnefotball = match.sport_id === "soccer" && [3, 5, 7].includes(match.players_on_field);
+  const saveCount = matchEvents.filter((e) => e.event_type === "save").length;
   const goalDiff = scoreAway - scoreHome;
   const hasExtraPlayer = fieldPlayers.length > match.players_on_field;
   // When track_goals: auto-detect from score. When not tracking: coach decides manually.
@@ -1811,6 +1908,11 @@ export function MatchLive() {
     await addExtraPlayer.mutateAsync({ playerId, atSeconds: elapsed });
   }
 
+  async function handleLogSave(keeperId: string | null, defenderId: string | null) {
+    setSaveDialogOpen(false);
+    await logSave.mutateAsync({ keeperPlayerId: keeperId, defenderPlayerId: defenderId, atSeconds: elapsed });
+  }
+
   async function handleAddSquadPlayer(playerId: string) {
     setAddSquadPlayerOpen(false);
     await addPlayerToMatch.mutateAsync({ playerId });
@@ -1992,6 +2094,15 @@ export function MatchLive() {
                 <button type="button" onClick={() => openGoalDialog("home")}
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-ink/20 text-lg font-bold text-ink active:bg-ink/10">+</button>
               </div>
+            )}
+            {!isEasyBasket && match.status !== "finished" && (
+              <button
+                type="button"
+                onClick={() => setSaveDialogOpen(true)}
+                className="flex items-center gap-1 rounded-full border border-ink/15 bg-cream-dark px-2.5 py-1 text-xs font-medium text-ink-muted active:bg-ink/10"
+              >
+                🧤 {saveCount}
+              </button>
             )}
           </div>
           <span className="font-display text-2xl font-bold text-ink/20 mx-2">–</span>
@@ -2299,6 +2410,16 @@ export function MatchLive() {
           onAddAnonymous={handleAddAnonymousPlayer}
           onCancel={() => setAddSquadPlayerOpen(false)}
         />
+
+        {/* Save dialog */}
+        {match.track_goals && !isEasyBasket && (
+          <SaveDialog
+            open={saveDialogOpen}
+            players={players}
+            onConfirm={handleLogSave}
+            onCancel={() => setSaveDialogOpen(false)}
+          />
+        )}
 
         {/* Player detail / play-time edit dialog */}
         {playerDetailId && (() => {

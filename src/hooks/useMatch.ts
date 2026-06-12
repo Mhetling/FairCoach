@@ -185,6 +185,30 @@ export function useLogGoal(matchId: string | undefined) {
   });
 }
 
+export function useLogSave(matchId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      keeperPlayerId: string | null;
+      defenderPlayerId: string | null;
+      atSeconds: number;
+    }) => {
+      if (!matchId) return;
+      const { error } = await supabase.from("match_events").insert({
+        match_id: matchId,
+        player_id: args.keeperPlayerId,
+        event_type: "save",
+        at_seconds: args.atSeconds,
+        meta: {
+          ...(args.defenderPlayerId ? { defender_player_id: args.defenderPlayerId } : {}),
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["match-events", matchId] }),
+  });
+}
+
 export function useAddPlayerToMatch(matchId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

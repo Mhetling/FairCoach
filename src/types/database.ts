@@ -90,6 +90,7 @@ export type MatchEventType =
   | "on"
   | "off"
   | "goal"
+  | "save"
   | "period_start"
   | "period_end"
   | "pause"
