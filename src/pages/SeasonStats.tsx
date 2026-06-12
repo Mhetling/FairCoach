@@ -195,7 +195,7 @@ function FairnessTrendChart({ players }: { players: PlayerSeasonStat[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
             <YAxis domain={[0, 150]} tick={{ fontSize: 10 }} unit="%" />
-            <Tooltip formatter={(v: number) => `${v}%`} />
+            <Tooltip formatter={(v) => (v != null ? `${v}%` : "")} />
             <ReferenceLine y={100} stroke="#00000030" strokeDasharray="4 4" />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
             {top.map((p, i) => (
