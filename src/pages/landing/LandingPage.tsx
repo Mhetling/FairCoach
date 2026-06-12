@@ -316,7 +316,7 @@ function Features() {
     },
   ];
 
-  const gridFeatures = [
+  const gridFeatures: Array<{ title: string; text: string; img: string | null; imgAlt?: string }> = [
     {
       title: "Kampnotat",
       text: "Skriv taktiske observasjoner: hva fungerte, hva bør øves på.",
