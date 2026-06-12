@@ -124,7 +124,7 @@ function Hero() {
         </div>
         <div className="flex w-full max-w-[300px] shrink-0 justify-center lg:max-w-[340px]">
           <Screenshot
-            src="/landing/hero-live.png"
+            src="/landing/hero-live.PNG"
             alt="Live kampvisning med fargekodet spilletid"
             className="w-full"
           />
@@ -142,21 +142,21 @@ function HowItWorks() {
       number: "1",
       title: "Før kampen",
       text: "Velg format, omgangslengde og spillere. FairCoach kan reglene for fotball, håndball, basket og ishockey — hentet fra forbundene selv.",
-      img: "/landing/oppsett.png",
+      img: "/landing/oppsett.PNG",
       alt: "Kampoppsett med spillervalg og format",
     },
     {
       number: "2",
       title: "Under kampen",
       text: "Dra og slipp for å bytte. Fargene viser live hvem som har spilt mye og hvem som har spilt lite.",
-      img: "/landing/live-bytte.png",
+      img: "/landing/live-bytte.PNG",
       alt: "Live banevisning med drag-og-slipp-bytter",
     },
     {
       number: "3",
       title: "Etter kampen",
       text: "Se nøyaktig hvor mye hver enkelt spilte, full bytteoversikt, og del en ryddig oppsummering med foreldrene.",
-      img: "/landing/oppsummering.png",
+      img: "/landing/oppsummering.PNG",
       alt: "Oppsummering med spilletidsoversikt per spiller",
     },
   ];
@@ -222,12 +222,12 @@ function CoachSection() {
         </div>
         <div className="flex shrink-0 flex-col items-center gap-4 sm:flex-row sm:justify-center lg:flex-col">
           <Screenshot
-            src="/landing/bytter.png"
+            src="/landing/bytter.PNG"
             alt="Byttelogg med tidsstempel"
             className="w-full max-w-[220px]"
           />
           <Screenshot
-            src="/landing/oppsummering.png"
+            src="/landing/oppsummering.PNG"
             alt="Oppsummering med spilletid per spiller"
             className="w-full max-w-[220px]"
           />
@@ -281,37 +281,37 @@ function Features() {
     {
       title: "Visuell banevisning med fargekodet spilletid",
       text: "Se hele laget på banen i sanntid. Hver spiller er fargekodet etter hvor mye de har spilt: blå = mye, grønn = balansert, gul = litt under, rød = mye under. Keeper telles for seg.",
-      img: "/landing/live-bytte.png",
+      img: "/landing/live-bytte.PNG",
       alt: "Fargekodet banevisning med spillere",
     },
     {
       title: "Spillerstatus og notater",
       text: "Trykk på en spiller for å sette status — skadet, ville ikke spille, foreldreavtale eller utvist — skrive et kort notat, og justere spilletiden manuelt hvis noe må korrigeres.",
-      img: "/landing/spiller-info.png",
+      img: "/landing/spiller-info.PNG",
       alt: "Spillerkort med status, notat og spilletidsjustering",
     },
     {
       title: "Mål og assist",
       text: "Registrer målscorer og assist underveis, så oppsummeringen blir komplett.",
-      img: "/landing/mal-registrering.png",
+      img: "/landing/mal-registrering.PNG",
       alt: "Velg målscorer og assist",
     },
     {
       title: "Juster klokka",
       text: "Glemte du å starte eller stoppe? Rett opp klokka raskt uten å miste oversikten.",
-      img: "/landing/juster-klokka.png",
+      img: "/landing/juster-klokka.PNG",
       alt: "Juster kampklokka underveis",
     },
     {
       title: "Byttelogg med tidsstempel",
       text: "Hvert eneste bytte logges med tid — inn og ut — så du alltid kan se hva som skjedde og når.",
-      img: "/landing/bytter.png",
+      img: "/landing/bytter.PNG",
       alt: "Byttelogg med tidsstempel for inn og ut",
     },
     {
       title: "Oppsummering med posisjonsfordeling",
       text: "Etter kampen ser du nøyaktig spilletid per spiller, hvor de spilte (back, midt, keeper), og en fargekodet status på hvor jevnt det ble.",
-      img: "/landing/oppsummering.png",
+      img: "/landing/oppsummering.PNG",
       alt: "Oppsummering med posisjonsfordeling og spilletid",
     },
   ];
@@ -325,25 +325,25 @@ function Features() {
     {
       title: "Del som bilde",
       text: "Eksportér en pen oppsummering, eller kopier som tekst.",
-      img: "/landing/del-bilde.png",
+      img: "/landing/del-bilde.PNG",
       imgAlt: "Del oppsummering som bilde",
     },
     {
       title: "Forbundsriktige regler",
       text: "Formater og omgangslengder fra NFF, NHF, NBBF og NIHF, tilpasset alderstrinn.",
-      img: "/landing/forbundsregler.png",
+      img: "/landing/forbundsregler.PNG",
       imgAlt: "Kampoppsett med forbundsformater",
     },
     {
       title: "Flere lag på én konto",
       text: "Administrer alle lagene dine ett sted.",
-      img: "/landing/multisport.png",
+      img: "/landing/multisport.PNG",
       imgAlt: "Mine lag med fire idretter",
     },
     {
       title: "Sett opp rekker (ishockey)",
       text: "Bygg rekker og linjer på forhånd, så bytter går kjapt og riktig i kampens hete.",
-      img: "/landing/hockey-rekker.png",
+      img: "/landing/hockey-rekker.PNG",
       imgAlt: "Ishockey rekkeoppsett",
     },
     {
@@ -456,10 +456,10 @@ function Fairness() {
 
 function MultiSport() {
   const sports = [
-    { img: "/landing/hero-live.png", alt: "Fotball — live banevisning" },
-    { img: "/landing/handball-live.png", alt: "Håndball — live banevisning" },
-    { img: "/landing/basket1.png", alt: "Basketball — banevisning" },
-    { img: "/landing/hockey.png", alt: "Ishockey — banevisning" },
+    { img: "/landing/hero-live.PNG", alt: "Fotball — live banevisning" },
+    { img: "/landing/handball-live.PNG", alt: "Håndball — live banevisning" },
+    { img: "/landing/basket1.PNG", alt: "Basketball — banevisning" },
+    { img: "/landing/hockey.PNG", alt: "Ishockey — banevisning" },
   ];
 
   return (
