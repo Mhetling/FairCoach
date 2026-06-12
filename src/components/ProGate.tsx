@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useGate } from "@/hooks/useGate";
@@ -32,11 +32,44 @@ function LockCard({ feature, className }: { feature: Feature; className?: string
   );
 }
 
+function PreviewBanner({ feature }: { feature: Feature }) {
+  const navigate = useNavigate();
+  return (
+    <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-900">
+          {FEATURE_LABELS[feature]} — Pro-funksjon
+        </p>
+        <p className="text-xs text-amber-700 mt-0.5">
+          Tilgjengelig gratis nå, men vil kreve Pro-abonnement når betaling lanseres.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => navigate("/upgrade")}
+        className="shrink-0 text-xs font-medium text-amber-800 underline underline-offset-2"
+      >
+        Les mer
+      </button>
+    </div>
+  );
+}
+
 export function ProGate({ feature, fullPage = false, children }: ProGateProps) {
   const gate = useGate(feature);
 
-  if (gate.loading || gate.allowed) {
+  if (gate.loading) {
     return <>{children}</>;
+  }
+
+  if (gate.allowed) {
+    return (
+      <>
+        {gate.preview && <PreviewBanner feature={feature} />}
+        {children}
+      </>
+    );
   }
 
   if (fullPage) {
