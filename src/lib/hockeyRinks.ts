@@ -173,5 +173,5 @@ export const FORMAT_DEFAULTS: Record<HockeyFormat, {
   '3v3-small':   { periodLengthSeconds: 8 * 60,  periodCount: 3 },
   '3v3-quarter': { periodLengthSeconds: 10 * 60, periodCount: 2 },
   '5v5-small':   { periodLengthSeconds: 12 * 60, periodCount: 3 },
-  '5v5-full':    { periodLengthSeconds: 15 * 60, periodCount: 3 },
+  '5v5-full':    { periodLengthSeconds: 20 * 60, periodCount: 3 },
 };

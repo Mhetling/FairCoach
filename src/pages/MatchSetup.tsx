@@ -448,7 +448,7 @@ export function MatchSetup() {
                             "rounded px-1.5 py-0.5 text-xs font-medium",
                             active ? "bg-ink/10 text-ink" : "bg-ink/6 text-ink-muted",
                           )}>
-                            {spec.playersOnField} spillere
+                            {spec.playersOnField - 1} spill. + MV
                           </span>
                           <span className={cn(
                             "rounded px-1.5 py-0.5 text-xs font-medium",
