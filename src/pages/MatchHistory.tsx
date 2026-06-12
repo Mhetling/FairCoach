@@ -7,6 +7,7 @@ import { useTeam } from "@/hooks/useTeams";
 import { useTeamMatches, useDeleteMatch } from "@/hooks/useMatches";
 import { toast } from "@/components/ui/use-toast";
 import { getDisplayError } from "@/lib/errors";
+import { ProGate } from "@/components/ProGate";
 import type { Match, MatchStatus } from "@/types/database";
 
 function fmtDate(iso: string) {
@@ -113,24 +114,26 @@ export function MatchHistory() {
 
   return (
     <AppShell title={team ? `${team.name} — Kamper` : "Kamphistorikk"} showBack>
-      {isLoading && <div className="text-ink-muted">Laster …</div>}
+      <ProGate feature="match_history" fullPage>
+        {isLoading && <div className="text-ink-muted">Laster …</div>}
 
-      {!isLoading && matches?.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-            <p className="font-display text-xl font-bold">Ingen kamper ennå</p>
-            <p className="text-sm text-ink-muted">
-              Start en kamp fra lagsiden for å se historikk her.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {!isLoading && matches?.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+              <p className="font-display text-xl font-bold">Ingen kamper ennå</p>
+              <p className="text-sm text-ink-muted">
+                Start en kamp fra lagsiden for å se historikk her.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-      <div className="flex flex-col gap-2">
-        {matches?.map((m) => (
-          <MatchCard key={m.id} match={m} onDelete={() => handleDelete(m)} />
-        ))}
-      </div>
+        <div className="flex flex-col gap-2">
+          {matches?.map((m) => (
+            <MatchCard key={m.id} match={m} onDelete={() => handleDelete(m)} />
+          ))}
+        </div>
+      </ProGate>
     </AppShell>
   );
 }

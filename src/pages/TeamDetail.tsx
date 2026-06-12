@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2, Play, History, Pencil, Settings } from "lucide-react";
+import { Plus, Trash2, Play, History, Pencil, Settings, BarChart2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -528,9 +528,12 @@ export function TeamDetail() {
               <div className="text-sm text-ink-muted">Spillerstall</div>
               <div className="font-display text-2xl font-bold">{players?.length ?? 0} spillere</div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" onClick={() => navigate(`/teams/${team.id}/matches`)}>
                 <History className="h-4 w-4" /> Historikk
+              </Button>
+              <Button variant="outline" onClick={() => navigate(`/teams/${team.id}/stats`)}>
+                <BarChart2 className="h-4 w-4" /> Statistikk
               </Button>
               <Button variant="accent" onClick={() => navigate(`/teams/${team.id}/matches/new`)}
                 disabled={(players?.length ?? 0) < 1}>

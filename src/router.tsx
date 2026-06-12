@@ -9,10 +9,20 @@ import { MatchSummary } from "@/pages/MatchSummary";
 import { MatchHistory } from "@/pages/MatchHistory";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { UpgradePage } from "@/pages/UpgradePage";
+import { SeasonStats } from "@/pages/SeasonStats";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
   { path: "/privacy", element: <PrivacyPage /> },
+  {
+    path: "/upgrade",
+    element: (
+      <ProtectedRoute>
+        <UpgradePage />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/settings",
     element: (
@@ -66,6 +76,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <MatchSummary />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/teams/:teamId/stats",
+    element: (
+      <ProtectedRoute>
+        <SeasonStats />
       </ProtectedRoute>
     ),
   },

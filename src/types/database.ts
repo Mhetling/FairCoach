@@ -2,6 +2,23 @@
 // After connecting Supabase you can regenerate with:
 //   npx supabase gen types typescript --project-id <ref> > src/types/database.ts
 
+export type Tier = "free" | "pro";
+
+export type Feature =
+  | "match_history"
+  | "season_stats"
+  | "player_stats_export"
+  | "team_form"
+  | "goalie_rotation"
+  | "match_templates";
+
+export type Profile = {
+  id: string;
+  tier: Tier;
+  pro_until: string | null;
+  created_at: string;
+};
+
 export type SportId = "soccer" | "handball" | "basketball" | "hockey";
 export type MatchStatus = "pending" | "live" | "paused" | "finished";
 export type SoccerPosition = "GK" | "DEF" | "MID" | "FWD";
@@ -167,6 +184,12 @@ export type Database = {
           meta?: PlayerMeta | null;
         };
         Update: Partial<MatchPlayer>;
+        Relationships: [];
+      };
+      profiles: {
+        Row: Profile;
+        Insert: { id: string; tier?: Tier; pro_until?: string | null };
+        Update: Partial<Omit<Profile, "id" | "created_at">>;
         Relationships: [];
       };
       match_events: {
