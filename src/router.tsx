@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { Login } from "@/pages/Login";
+import { LandingPage } from "@/pages/landing/LandingPage";
 import { MyTeams } from "@/pages/MyTeams";
 import { TeamDetail } from "@/pages/TeamDetail";
 import { MatchSetup } from "@/pages/MatchSetup";
@@ -13,6 +14,7 @@ import { UpgradePage } from "@/pages/UpgradePage";
 import { SeasonStats } from "@/pages/SeasonStats";
 
 export const router = createBrowserRouter([
+  { path: "/", element: <LandingPage /> },
   { path: "/login", element: <Login /> },
   { path: "/privacy", element: <PrivacyPage /> },
   {
@@ -32,7 +34,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/",
+    path: "/app",
     element: (
       <ProtectedRoute>
         <MyTeams />

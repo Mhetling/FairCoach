@@ -272,7 +272,7 @@ function TeamSettingsDialog({ open, onClose, teamId }: { open: boolean; onClose:
     try {
       await remove.mutateAsync(teamId);
       toast({ title: "Laget er slettet", variant: "success" });
-      navigate("/");
+      navigate("/app");
     } catch (err) {
       toast({ title: "Kunne ikke slette", description: getDisplayError(err), variant: "error" });
     }

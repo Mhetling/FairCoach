@@ -13,7 +13,7 @@ export function Header({ title, showBack, rightSlot }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const onRoot = location.pathname === "/";
+  const onRoot = location.pathname === "/app";
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink/10 bg-cream/80 backdrop-blur-md">
@@ -35,7 +35,7 @@ export function Header({ title, showBack, rightSlot }: HeaderProps) {
               <LogOut className="h-5 w-5" />
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Mine lag">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/app")} aria-label="Mine lag">
               <Home className="h-5 w-5" />
             </Button>
           )
