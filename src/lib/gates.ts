@@ -11,7 +11,7 @@ const FEATURE_LABELS: Record<Feature, string> = {
   player_stats_export:  "Eksporter spillerkort",
   team_form:            "Lagform",
   goalie_rotation:      "Keeperrotasjon",
-  match_templates:      "Kampmalov",
+  match_templates:      "Kampmal",
 };
 
 const FEATURE_DESCRIPTIONS: Record<Feature, string> = {
@@ -20,7 +20,7 @@ const FEATURE_DESCRIPTIONS: Record<Feature, string> = {
   player_stats_export:  "Eksporter spillerkort med sesongstatistikk som bilde.",
   team_form:            "Se lagets vinn/uavgjort/tap-rekord og målstatistikk over sesongen.",
   goalie_rotation:      "Hold oversikt over hvem som har vært keeper og hvem som er forfalt.",
-  match_templates:      "Lagre kampoppsett som malov og last inn raskt til neste kamp.",
+  match_templates:      "Lagre kampoppsett som mal og last inn raskt til neste kamp.",
 };
 
 export { FEATURE_LABELS, FEATURE_DESCRIPTIONS };
