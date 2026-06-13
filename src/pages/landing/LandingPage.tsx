@@ -121,6 +121,10 @@ function Hero() {
               Se hvordan det funker
             </a>
           </div>
+          <p className="mt-4 text-xs text-ink-muted">
+            Fungerer i nettleseren på iPhone og Android — ingen app-nedlasting nødvendig.
+            Legg til på hjemskjermen for app-følelsen.
+          </p>
         </div>
         <div className="flex w-full max-w-[300px] shrink-0 justify-center lg:max-w-[340px]">
           <Screenshot
@@ -382,23 +386,23 @@ function Features() {
           ))}
         </div>
 
-        {/* Compact grid */}
+        {/* Feature grid */}
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {gridFeatures.map((f) => (
             <div
               key={f.title}
-              className="flex gap-4 rounded-card bg-cream p-5 shadow-card"
+              className="flex flex-col overflow-hidden rounded-card bg-cream shadow-card"
             >
               {f.img && (
-                <div className="shrink-0">
+                <div className="flex justify-center bg-cream-dark px-6 pt-6">
                   <Screenshot
                     src={f.img}
                     alt={f.imgAlt ?? f.title}
-                    className="h-14 w-14 rounded-xl object-cover"
+                    className="h-56 w-auto"
                   />
                 </div>
               )}
-              <div>
+              <div className="p-5">
                 <p className="mb-1 font-display text-base font-bold text-ink">{f.title}</p>
                 <p className="text-sm leading-snug text-ink-muted">{f.text}</p>
               </div>
