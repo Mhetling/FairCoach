@@ -387,18 +387,18 @@ function Features() {
         </div>
 
         {/* Feature grid */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {gridFeatures.map((f) => (
             <div
               key={f.title}
               className="flex flex-col overflow-hidden rounded-card bg-cream shadow-card"
             >
               {f.img && (
-                <div className="flex justify-center bg-cream-dark px-6 pt-6">
+                <div className="flex justify-center bg-cream-dark px-8 pt-6">
                   <Screenshot
                     src={f.img}
                     alt={f.imgAlt ?? f.title}
-                    className="h-56 w-auto"
+                    className="w-full max-w-xs"
                   />
                 </div>
               )}
