@@ -318,47 +318,40 @@ function Features() {
       img: "/landing/oppsummering.PNG",
       alt: "Oppsummering med posisjonsfordeling og spilletid",
     },
-  ];
-
-  const gridFeatures: Array<{ title: string; text: string; img: string | null; imgAlt?: string }> = [
-    {
-      title: "Kampnotat",
-      text: "Skriv taktiske observasjoner: hva fungerte, hva bør øves på.",
-      img: null,
-    },
     {
       title: "Del som bilde",
-      text: "Eksportér en pen oppsummering, eller kopier som tekst.",
+      text: "Eksportér en pen oppsummering, eller kopier som tekst og send i foreldregruppa.",
       img: "/landing/del-bilde.PNG",
-      imgAlt: "Del oppsummering som bilde",
+      alt: "Del oppsummering som bilde",
     },
     {
       title: "Forbundsriktige regler",
       text: "Formater og omgangslengder fra NFF, NHF, NBBF og NIHF, tilpasset alderstrinn.",
       img: "/landing/forbundsregler.PNG",
-      imgAlt: "Kampoppsett med forbundsformater",
+      alt: "Kampoppsett med forbundsformater",
     },
     {
       title: "Flere lag på én konto",
-      text: "Administrer alle lagene dine ett sted.",
+      text: "Administrer alle lagene dine ett sted — fotball, håndball, basket eller ishockey.",
       img: "/landing/multisport.PNG",
-      imgAlt: "Mine lag med fire idretter",
+      alt: "Mine lag med fire idretter",
     },
     {
       title: "Sett opp rekker (ishockey)",
       text: "Bygg rekker og linjer på forhånd, så bytter går kjapt og riktig i kampens hete.",
       img: "/landing/hockey-rekker.PNG",
-      imgAlt: "Ishockey rekkeoppsett",
+      alt: "Ishockey rekkeoppsett",
     },
+  ];
+
+  const textFeatures = [
     {
-      title: "Sanntidssynk",
-      text: "Endringer oppdateres på alle enheter umiddelbart, så hovedtrener og hjelpetrener ser det samme.",
-      img: null,
+      title: "Kampnotat",
+      text: "Skriv taktiske observasjoner etter kampen: hva fungerte, hva bør øves på.",
     },
     {
       title: "Personvern først",
-      text: "Kun fornavn, innlogging med Google, ingen app store nødvendig, og en GDPR-vennlig løsning.",
-      img: null,
+      text: "Kun fornavn lagres. Innlogging med Google, ingen app-nedlasting, GDPR-vennlig.",
     },
   ];
 
@@ -372,7 +365,6 @@ function Features() {
           Fra første oppstilling til ferdig oppsummering — hele kampen i én app.
         </p>
 
-        {/* Spotlight rows */}
         <div className="divide-y divide-ink/8">
           {spotlights.map((s, i) => (
             <Spotlight
@@ -386,26 +378,11 @@ function Features() {
           ))}
         </div>
 
-        {/* Feature grid */}
-        <div className="mt-12 grid gap-6 sm:grid-cols-2">
-          {gridFeatures.map((f) => (
-            <div
-              key={f.title}
-              className="flex flex-col overflow-hidden rounded-card bg-cream shadow-card"
-            >
-              {f.img && (
-                <div className="flex justify-center bg-cream-dark px-8 pt-6">
-                  <Screenshot
-                    src={f.img}
-                    alt={f.imgAlt ?? f.title}
-                    className="w-full max-w-xs"
-                  />
-                </div>
-              )}
-              <div className="p-5">
-                <p className="mb-1 font-display text-base font-bold text-ink">{f.title}</p>
-                <p className="text-sm leading-snug text-ink-muted">{f.text}</p>
-              </div>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          {textFeatures.map((f) => (
+            <div key={f.title} className="rounded-card bg-cream p-5 shadow-card">
+              <p className="mb-1 font-display text-base font-bold text-ink">{f.title}</p>
+              <p className="text-sm leading-snug text-ink-muted">{f.text}</p>
             </div>
           ))}
         </div>
