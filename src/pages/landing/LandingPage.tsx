@@ -307,12 +307,6 @@ function Features() {
       alt: "Juster kampklokka underveis",
     },
     {
-      title: "Byttelogg med tidsstempel",
-      text: "Hvert eneste bytte logges med tid — inn og ut — så du alltid kan se hva som skjedde og når.",
-      img: "/landing/bytter.PNG",
-      alt: "Byttelogg med tidsstempel for inn og ut",
-    },
-    {
       title: "Oppsummering med posisjonsfordeling",
       text: "Etter kampen ser du nøyaktig spilletid per spiller, hvor de spilte (back, midt, keeper), og en fargekodet status på hvor jevnt det ble.",
       img: "/landing/oppsummering.PNG",
@@ -323,12 +317,6 @@ function Features() {
       text: "Eksportér en pen oppsummering, eller kopier som tekst og send i foreldregruppa.",
       img: "/landing/del-bilde.PNG",
       alt: "Del oppsummering som bilde",
-    },
-    {
-      title: "Forbundsriktige regler",
-      text: "Formater og omgangslengder fra NFF, NHF, NBBF og NIHF, tilpasset alderstrinn.",
-      img: "/landing/forbundsregler.PNG",
-      alt: "Kampoppsett med forbundsformater",
     },
     {
       title: "Flere lag på én konto",
@@ -345,6 +333,14 @@ function Features() {
   ];
 
   const textFeatures = [
+    {
+      title: "Byttelogg med tidsstempel",
+      text: "Hvert eneste bytte logges med tid — inn og ut — så du alltid kan se hva som skjedde og når.",
+    },
+    {
+      title: "Forbundsriktige regler",
+      text: "Formater og omgangslengder fra NFF, NHF, NBBF og NIHF, tilpasset alderstrinn.",
+    },
     {
       title: "Kampnotat",
       text: "Skriv taktiske observasjoner etter kampen: hva fungerte, hva bør øves på.",
