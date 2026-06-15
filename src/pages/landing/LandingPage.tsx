@@ -468,8 +468,18 @@ function MultiSport() {
 function Pricing() {
   return (
     <section id="priser" className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
-      <div className="mb-12 text-center">
+      <div className="mb-8 text-center">
         <SectionHeading>Priser</SectionHeading>
+      </div>
+      <div className="mb-10 rounded-card border border-accent/40 bg-accent/10 px-6 py-5 text-center">
+        <p className="font-display text-base font-bold text-ink">
+          Alle funksjoner er gratis i innkjøringsfasen
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+          FairCoach er under aktiv utvikling og testing. Alle Pro-funksjoner er åpne for alle
+          inntil appen er gjennomtestet og klar for lansering. Du vil bli varslet i god tid
+          før betaling innføres.
+        </p>
       </div>
       <div className="grid gap-5 sm:grid-cols-3">
         {/* Gratis */}
