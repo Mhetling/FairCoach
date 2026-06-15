@@ -993,9 +993,10 @@ function GoalDialog({ open, team, opponent, teamName, players, isHockey, onConfi
 
 // ─── Save dialog ─────────────────────────────────────────────────────────────
 
-function SaveDialog({ open, players, onConfirm, onCancel }: {
+function SaveDialog({ open, players, isBasketball, onConfirm, onCancel }: {
   open: boolean;
   players: RichMatchPlayer[];
+  isBasketball: boolean;
   onConfirm: (keeperId: string | null, defenderId: string | null) => void;
   onCancel: () => void;
 }) {
@@ -1035,11 +1036,13 @@ function SaveDialog({ open, players, onConfirm, onCancel }: {
     <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Registrer redning</DialogTitle>
+          <DialogTitle>{isBasketball ? "Registrer block" : "Registrer redning"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">Keeper</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">
+              {isBasketball ? "Blokkert av" : "Keeper"}
+            </p>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setKeeperId(null)}
                 className={cn(
@@ -1055,23 +1058,25 @@ function SaveDialog({ open, players, onConfirm, onCancel }: {
               ))}
             </div>
           </div>
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">God forsvarsjobb (valgfritt)</p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setDefenderId(null)}
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                  defenderId === null ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink-muted hover:bg-ink/5",
-                )}>
-                Ingen
-              </button>
-              {onField.filter((p) => p.player_id !== keeperId).map((mp) => (
-                <Chip key={mp.player_id} mp={mp}
-                  selected={defenderId === mp.player_id}
-                  onSelect={() => setDefenderId(mp.player_id)} />
-              ))}
+          {!isBasketball && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-muted">God forsvarsjobb (valgfritt)</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setDefenderId(null)}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    defenderId === null ? "border-ink bg-ink text-cream" : "border-ink/20 bg-cream-dark text-ink-muted hover:bg-ink/5",
+                  )}>
+                  Ingen
+                </button>
+                {onField.filter((p) => p.player_id !== keeperId).map((mp) => (
+                  <Chip key={mp.player_id} mp={mp}
+                    selected={defenderId === mp.player_id}
+                    onSelect={() => setDefenderId(mp.player_id)} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="mt-4 flex gap-2">
           <Button variant="ghost" className="flex-1" onClick={onCancel}>Avbryt</Button>
@@ -2101,7 +2106,7 @@ export function MatchLive() {
                 onClick={() => setSaveDialogOpen(true)}
                 className="flex items-center gap-1 rounded-full border border-ink/15 bg-cream-dark px-2.5 py-1 text-xs font-medium text-ink-muted active:bg-ink/10"
               >
-                🧤 {saveCount}
+                {isBasketball ? "✋" : "🧤"} {saveCount}
               </button>
             )}
           </div>
@@ -2416,6 +2421,7 @@ export function MatchLive() {
           <SaveDialog
             open={saveDialogOpen}
             players={players}
+            isBasketball={isBasketball}
             onConfirm={handleLogSave}
             onCancel={() => setSaveDialogOpen(false)}
           />
