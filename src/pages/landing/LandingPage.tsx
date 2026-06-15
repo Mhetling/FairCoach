@@ -489,37 +489,52 @@ function Pricing() {
           </Link>
         </div>
 
-        {/* Pro — featured */}
+        {/* Trener — featured */}
         <div className="flex flex-col rounded-card bg-ink p-6 shadow-xl ring-2 ring-accent">
           <div className="mb-2 self-start rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-ink">
             Tidlig-bruker: 199 kr/år for de første 100
           </div>
-          <p className="mb-1 font-display text-2xl font-bold text-cream">Pro</p>
-          <p className="mb-1 text-sm font-medium text-cream/60">per trener</p>
+          <p className="mb-1 font-display text-2xl font-bold text-cream">Trener</p>
+          <p className="mb-1 text-sm font-medium text-cream/60">per trener · per år</p>
           <div className="mb-5 flex items-baseline gap-2">
-            <span className="font-display text-3xl font-black text-cream">299 kr</span>
-            <span className="text-sm text-cream/60">/ år</span>
+            <span className="font-display text-3xl font-black text-cream">199 kr</span>
+            <span className="text-sm text-cream/50 line-through">249 kr</span>
           </div>
-          <p className="flex-1 text-sm leading-relaxed text-cream/70">
-            For deg som vil ha mer: historikk over flere kamper, statistikk over tid og flere lag på
-            samme konto.
-          </p>
-          <Link
-            to={APP_PATH}
-            className="mt-6 rounded-full bg-accent py-2.5 text-center text-sm font-bold text-accent-ink transition-opacity hover:opacity-90"
-          >
-            Prøv gratis nå
-          </Link>
+          <ul className="mb-5 flex-1 space-y-1.5 text-sm text-cream/70">
+            <li>Kamphistorikk</li>
+            <li>Sesongstatistikk per spiller</li>
+            <li>Keeperrotasjon</li>
+            <li>Kampmal — lagre og gjenbruk oppsett</li>
+            <li>Alle lag du administrerer</li>
+          </ul>
+          <div className="mt-auto rounded-full border border-cream/20 py-2.5 text-center text-sm font-bold text-cream/50">
+            Gratis under lansering — Pro åpent for alle
+          </div>
         </div>
 
         {/* Klubb */}
         <div className="flex flex-col rounded-card border border-ink/10 bg-cream-dark p-6 shadow-card">
           <p className="mb-1 font-display text-2xl font-bold text-ink">Klubb</p>
-          <p className="mb-1 text-sm font-medium text-ink-muted">ta kontakt</p>
-          <p className="mb-5 font-display text-3xl font-black text-ink">–</p>
-          <p className="flex-1 text-sm leading-relaxed text-ink-muted">
-            Felles standard for hele klubben. Alle trenere får Pro, samlet fakturering, og en
-            GDPR-vennlig løsning klubben kan stå inne for.
+          <p className="mb-1 text-sm font-medium text-ink-muted">alle trenere inkludert</p>
+          <p className="mb-4 font-display text-3xl font-black text-ink">fra 990 kr<span className="text-base font-semibold text-ink-muted">/år</span></p>
+          <table className="mb-4 w-full text-xs">
+            <tbody className="divide-y divide-ink/8">
+              <tr>
+                <td className="py-1.5 font-medium text-ink">S — opp til 8 lag</td>
+                <td className="py-1.5 text-right font-bold text-ink">990 kr</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 font-medium text-ink">M — opp til 20 lag</td>
+                <td className="py-1.5 text-right font-bold text-ink">1 990 kr</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 font-medium text-ink-muted">L — 20+ lag</td>
+                <td className="py-1.5 text-right text-ink-muted">ta kontakt</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="flex-1 text-xs leading-relaxed text-ink-muted">
+            Alle trenere i klubben får Pro automatisk. Samlet fakturering og GDPR-vennlig oppsett.
           </p>
           <a
             href="mailto:hei@faircoach.dev"
